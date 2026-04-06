@@ -9,24 +9,31 @@ class Rainbow {
     val bounds = Rectangle()
     var active = false
     var timer = 0f
-    var direction = 1 // -1 left, 1 right (no more vertical)
+    var direction = 1 // -1 left, 1 right
 
-    fun activate(startX: Float, startY: Float, dir: Int) {
+    fun activate(startX: Float, startY: Float, dir: Int, onGround: Boolean) {
         active = true
         timer = Constants.RAINBOW_DURATION
         direction = if (dir >= 0) 1 else -1
 
-        // Position the rainbow platform relative to the player
-        // Always horizontal: creates a bridge in the direction the player faces
-        val offsetY = Constants.PLAYER_HEIGHT * 0.4f  // slightly below player center
-        if (direction == -1) {
-            position.set(startX - Constants.RAINBOW_LENGTH, startY + offsetY)
+        // Y position depends on player state:
+        // - On ground: platform created 48px ABOVE player (to climb onto)
+        // - In air/jumping: platform created 6px BELOW player (to land on)
+        val platformY = if (onGround) {
+            startY + 48f
         } else {
-            position.set(startX + Constants.PLAYER_WIDTH, startY + offsetY)
+            startY - 6f
         }
 
-        // Horizontal platform bounds
-        bounds.set(position.x, position.y, Constants.RAINBOW_LENGTH, Constants.RAINBOW_WIDTH)
+        // X position: extends in the direction the player faces
+        val platformX = if (direction == -1) {
+            startX - Constants.RAINBOW_LENGTH
+        } else {
+            startX + Constants.PLAYER_WIDTH
+        }
+
+        position.set(platformX, platformY)
+        bounds.set(platformX, platformY, Constants.RAINBOW_LENGTH, Constants.RAINBOW_WIDTH)
     }
 
     fun update(delta: Float) {

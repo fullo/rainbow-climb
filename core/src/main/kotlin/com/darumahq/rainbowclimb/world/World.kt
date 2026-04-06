@@ -569,7 +569,7 @@ class World(seed: Long = System.currentTimeMillis()) {
     fun shootRainbow(direction: Int) {
         if (!player.shootRainbow()) return
         val rainbow = Rainbow()
-        rainbow.activate(player.position.x, player.position.y, direction)
+        rainbow.activate(player.position.x, player.position.y, direction, player.isOnGround)
         rainbows.add(rainbow)
         rainbowsShot++
         events.add(GameEvent(EventType.RAINBOW_SHOOT, player.position.x, player.position.y))
