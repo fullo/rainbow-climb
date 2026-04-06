@@ -70,6 +70,20 @@ The APK will be at `android/build/outputs/apk/debug/android-debug.apk`.
 | Second finger tap | Jump |
 | Swipe up/left/right | Shoot rainbow |
 
+## Credits
+
+### Art Assets (all CC0 — Public Domain)
+
+| Asset Pack | Author | Used for |
+|-----------|--------|----------|
+| [Pixel Adventure 1](https://pixelfrog-assets.itch.io/pixel-adventure-1) | **Pixel Frog** | Player character, collectibles, terrain, platforms, backgrounds, UI |
+| [Kings and Pigs](https://pixelfrog-assets.itch.io/kings-and-pigs) | **Pixel Frog** | Walker & Bomber enemies, tilesets, HUD elements |
+| [Treasure Hunters](https://pixelfrog-assets.itch.io/treasure-hunters) | **Pixel Frog** | Hopper, Chaser & Shooter enemies |
+| [Pixel Art Gem Pack](https://karsiori.itch.io/free-pixel-art-gem-pack) | **karsiori** | Gem collectibles (8 color variants) |
+| [Public Pixel Font](https://ggbot.itch.io/public-pixel-font) | **GGBotNet** | HUD and UI text |
+
+All assets are released under Creative Commons Zero (CC0). Full details in [assets/LICENSES.md](assets/LICENSES.md).
+
 ## License
 
 **Code**: MIT License

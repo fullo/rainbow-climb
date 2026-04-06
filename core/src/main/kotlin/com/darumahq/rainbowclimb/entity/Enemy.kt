@@ -123,6 +123,13 @@ class Enemy {
         position.x += velocity.x * delta
         position.y += velocity.y * delta
         velocity.y += Constants.GRAVITY * delta * 0.3f // lighter gravity for hoppers
+
+        // Jump when landing back at or below baseY
+        if (position.y <= baseY && velocity.y <= 0f) {
+            position.y = baseY
+            velocity.y = Constants.JUMP_VELOCITY * 0.6f // shorter jump than player
+        }
+
         clampPatrol()
     }
 

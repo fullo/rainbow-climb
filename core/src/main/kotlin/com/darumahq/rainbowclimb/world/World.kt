@@ -19,6 +19,8 @@ class World(seed: Long = System.currentTimeMillis()) {
     private val pendingProjectiles = mutableListOf<Projectile>()
     private val pendingCollectibles = mutableListOf<Collectible>()
 
+    private var frameDelta = 0f
+
     var cameraY = 0f
     var scrollSpeed = Constants.BASE_SCROLL_SPEED
     var score = 0
@@ -94,6 +96,7 @@ class World(seed: Long = System.currentTimeMillis()) {
 
     fun update(delta: Float) {
         if (!player.isAlive) return
+        frameDelta = delta
 
         // Update scroll speed based on level
         val speedMult = if (player.slowTimeTimer > 0) 0.5f else 1f
@@ -232,8 +235,8 @@ class World(seed: Long = System.currentTimeMillis()) {
                 val dy = player.position.y - collectible.position.y
                 val dist = Math.sqrt((dx * dx + dy * dy).toDouble()).toFloat()
                 if (dist < magnetRange && dist > 0) {
-                    collectible.position.x += dx / dist * 200f * 0.016f
-                    collectible.position.y += dy / dist * 200f * 0.016f
+                    collectible.position.x += dx / dist * 200f * frameDelta
+                    collectible.position.y += dy / dist * 200f * frameDelta
                 }
             }
 

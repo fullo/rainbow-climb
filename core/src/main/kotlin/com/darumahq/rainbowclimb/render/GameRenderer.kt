@@ -17,6 +17,7 @@ class GameRenderer(private val batch: SpriteBatch) {
     val viewport = FitViewport(Constants.VIRTUAL_WIDTH, Constants.VIRTUAL_HEIGHT, camera)
     private val shapeRenderer = ShapeRenderer()
     private val parallax = ParallaxBackground()
+    private val hudCamera = OrthographicCamera()
     private val font = BitmapFont() // default font, replace with pixel font later
 
     private val rainbowColors = listOf(
@@ -26,6 +27,7 @@ class GameRenderer(private val batch: SpriteBatch) {
 
     init {
         camera.position.set(Constants.VIRTUAL_WIDTH / 2f, Constants.VIRTUAL_HEIGHT / 2f, 0f)
+        hudCamera.setToOrtho(false, Constants.VIRTUAL_WIDTH, Constants.VIRTUAL_HEIGHT)
         font.data.setScale(0.5f)
     }
 
@@ -112,8 +114,6 @@ class GameRenderer(private val batch: SpriteBatch) {
         shapeRenderer.end()
 
         // HUD (fixed to screen, not world)
-        val hudCamera = OrthographicCamera()
-        hudCamera.setToOrtho(false, Constants.VIRTUAL_WIDTH, Constants.VIRTUAL_HEIGHT)
         hudCamera.update()
 
         batch.projectionMatrix = hudCamera.combined
