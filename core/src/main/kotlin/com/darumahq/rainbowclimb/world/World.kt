@@ -13,6 +13,11 @@ class World(seed: Long = System.currentTimeMillis()) {
     val enemies = mutableListOf<Enemy>()
     val collectibles = mutableListOf<Collectible>()
     val rainbows = mutableListOf<Rainbow>()
+    val projectiles = mutableListOf<Projectile>()
+
+    // Staging lists to avoid concurrent modification
+    private val pendingProjectiles = mutableListOf<Projectile>()
+    private val pendingCollectibles = mutableListOf<Collectible>()
 
     var cameraY = 0f
     var scrollSpeed = Constants.BASE_SCROLL_SPEED
@@ -73,8 +78,9 @@ class World(seed: Long = System.currentTimeMillis()) {
                 val e = Enemy()
                 val speed = 40f * Math.pow(1.0 + Constants.DIFFICULTY_INCREASE, currentLevel.toDouble()).toFloat()
                 e.activate(def.x, def.y, def.type, speed)
-                e.patrolMinX = (def.x - 40f).coerceAtLeast(0f)
-                e.patrolMaxX = (def.x + 40f).coerceAtMost(Constants.VIRTUAL_WIDTH)
+                val patrolRange = if (def.type == EnemyType.BOMBER) 80f else 40f
+                e.patrolMinX = (def.x - patrolRange).coerceAtLeast(0f)
+                e.patrolMaxX = (def.x + patrolRange).coerceAtMost(Constants.VIRTUAL_WIDTH)
                 enemies.add(e)
             }
             for (def in chunk.collectibles) {
@@ -121,6 +127,8 @@ class World(seed: Long = System.currentTimeMillis()) {
         player.update(delta)
         platforms.forEach { it.update(delta) }
         enemies.forEach { it.update(delta) }
+        updateEnemyAI()
+        projectiles.forEach { it.update(delta) }
         collectibles.forEach { it.update(delta) }
         rainbows.forEach { it.update(delta) }
 
@@ -129,10 +137,21 @@ class World(seed: Long = System.currentTimeMillis()) {
         handleEnemyCollisions()
         handleCollectiblePickups()
         handleRainbowEnemyCollisions()
+        handleProjectileCollisions()
 
         // Check death: fell below camera
         if (player.position.y < cameraY - Constants.PLAYER_HEIGHT) {
             player.isAlive = false
+        }
+
+        // Flush staged entities
+        if (pendingProjectiles.isNotEmpty()) {
+            projectiles.addAll(pendingProjectiles)
+            pendingProjectiles.clear()
+        }
+        if (pendingCollectibles.isNotEmpty()) {
+            collectibles.addAll(pendingCollectibles)
+            pendingCollectibles.clear()
         }
 
         // Clean up off-screen entities
@@ -192,6 +211,7 @@ class World(seed: Long = System.currentTimeMillis()) {
                     player.shieldActive = false
                     enemy.active = false
                     score += 25
+                    spawnEnemyDrop(enemy.position.x, enemy.position.y)
                 } else {
                     player.isAlive = false
                 }
@@ -257,6 +277,96 @@ class World(seed: Long = System.currentTimeMillis()) {
                 if (rainbow.bounds.overlaps(enemy.bounds)) {
                     enemy.active = false
                     score += 25
+                    spawnEnemyDrop(enemy.position.x, enemy.position.y)
+                }
+            }
+            // Rainbows also destroy enemy projectiles
+            for (proj in projectiles) {
+                if (!proj.active) continue
+                if (rainbow.bounds.overlaps(proj.bounds)) {
+                    proj.active = false
+                }
+            }
+        }
+    }
+
+    private fun spawnEnemyDrop(x: Float, y: Float) {
+        if (random.nextFloat() < 0.5f) {
+            val c = Collectible()
+            val dropType = if (random.nextFloat() < 0.15f) {
+                // Rare power-up drop
+                val powerUps = listOf(CollectibleType.SHIELD, CollectibleType.DOUBLE_JUMP, CollectibleType.SLOW_TIME)
+                powerUps[random.nextInt(powerUps.size)]
+            } else {
+                CollectibleType.GEM
+            }
+            c.activate(x, y, dropType)
+            pendingCollectibles.add(c)
+        }
+    }
+
+    private fun updateEnemyAI() {
+        for (enemy in enemies) {
+            if (!enemy.active) continue
+
+            when (enemy.type) {
+                EnemyType.SHOOTER -> {
+                    if (enemy.wantsToFire) {
+                        enemy.wantsToFire = false
+                        val dir = if (player.position.x < enemy.position.x) -1 else 1
+                        val proj = Projectile()
+                        val spawnX = if (dir == 1) enemy.position.x + Constants.ENEMY_SIZE else enemy.position.x - Constants.PROJECTILE_SIZE
+                        proj.activate(spawnX, enemy.position.y + Constants.ENEMY_SIZE / 2f, ProjectileType.HORIZONTAL, dir)
+                        pendingProjectiles.add(proj)
+                    }
+                }
+                EnemyType.BOMBER -> {
+                    if (enemy.wantsToFire) {
+                        enemy.wantsToFire = false
+                        val dx = kotlin.math.abs(player.position.x - enemy.position.x)
+                        if (dx < Constants.BOMBER_DROP_RANGE_X) {
+                            val proj = Projectile()
+                            proj.activate(
+                                enemy.position.x + Constants.BOMBER_WIDTH / 2f - Constants.PROJECTILE_SIZE / 2f,
+                                enemy.position.y,
+                                ProjectileType.VERTICAL, 0
+                            )
+                            pendingProjectiles.add(proj)
+                        }
+                        // If not aligned, shot is forfeited; next drop waits for full cooldown
+                    }
+                }
+                EnemyType.CHASER -> {
+                    if (!enemy.isChasing) {
+                        val dx = player.position.x - enemy.position.x
+                        val dy = player.position.y - enemy.position.y
+                        val dist = kotlin.math.sqrt((dx * dx + dy * dy).toDouble()).toFloat()
+                        if (dist <= Constants.CHASER_DETECT_RADIUS) {
+                            enemy.isChasing = true
+                            enemy.chaseTimer = Constants.CHASER_DURATION
+                        }
+                    }
+                    if (enemy.isChasing) {
+                        // Update target to live player position each frame
+                        enemy.chaseTargetX = player.position.x
+                        enemy.chaseTargetY = player.position.y
+                    }
+                }
+                else -> {}
+            }
+        }
+    }
+
+    private fun handleProjectileCollisions() {
+        for (proj in projectiles) {
+            if (!proj.active) continue
+            if (player.bounds.overlaps(proj.bounds)) {
+                if (player.shieldActive) {
+                    player.shieldActive = false
+                    proj.active = false
+                } else {
+                    player.isAlive = false
+                    return
                 }
             }
         }
@@ -283,6 +393,12 @@ class World(seed: Long = System.currentTimeMillis()) {
         enemies.removeAll { !it.active || it.position.y < bottomThreshold }
         collectibles.removeAll { !it.active || it.position.y < bottomThreshold }
         rainbows.removeAll { !it.active }
+        projectiles.removeAll {
+            !it.active ||
+            it.position.y < bottomThreshold ||
+            it.position.x < -Constants.PROJECTILE_SIZE ||
+            it.position.x > Constants.VIRTUAL_WIDTH + Constants.PROJECTILE_SIZE
+        }
     }
 
     fun reset(newSeed: Long = System.currentTimeMillis()) {
@@ -290,6 +406,7 @@ class World(seed: Long = System.currentTimeMillis()) {
         enemies.clear()
         collectibles.clear()
         rainbows.clear()
+        projectiles.clear()
         player.reset()
         cameraY = 0f
         scrollSpeed = Constants.BASE_SCROLL_SPEED

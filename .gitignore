@@ -31,3 +31,13 @@ Thumbs.db
 # Temporary
 *.tmp
 *.log
+
+# Asset source downloads (originals in zip/extracted form)
+assets/_downloads/
+
+# Sprite processing script (dev tool only)
+assets/process_sprites.py
+
+# Claude agent state
+.claude/agent-trust.json
+.claude/plans/

@@ -8,6 +8,7 @@ import com.badlogic.gdx.graphics.g2d.BitmapFont
 import com.badlogic.gdx.graphics.g2d.SpriteBatch
 import com.badlogic.gdx.graphics.glutils.ShapeRenderer
 import com.badlogic.gdx.utils.viewport.FitViewport
+import com.darumahq.rainbowclimb.entity.EnemyType
 import com.darumahq.rainbowclimb.util.Constants
 import com.darumahq.rainbowclimb.world.World
 
@@ -68,12 +69,26 @@ class GameRenderer(private val batch: SpriteBatch) {
             )
         }
 
-        // Enemies
+        // Enemies (color-coded by type for playtesting)
         for (enemy in world.enemies) {
             if (!enemy.active) continue
-            shapeRenderer.color = Color.RED
-            shapeRenderer.rect(enemy.position.x, enemy.position.y,
-                Constants.ENEMY_SIZE, Constants.ENEMY_SIZE)
+            shapeRenderer.color = when (enemy.type) {
+                EnemyType.SHOOTER -> Color.DARK_GRAY
+                EnemyType.BOMBER -> Color(0.5f, 0f, 0.5f, 1f)
+                EnemyType.CHASER -> Color.SCARLET
+                else -> Color.RED
+            }
+            val w = if (enemy.type == EnemyType.BOMBER) Constants.BOMBER_WIDTH else Constants.ENEMY_SIZE
+            val h = if (enemy.type == EnemyType.BOMBER) Constants.BOMBER_HEIGHT else Constants.ENEMY_SIZE
+            shapeRenderer.rect(enemy.position.x, enemy.position.y, w, h)
+        }
+
+        // Projectiles
+        for (proj in world.projectiles) {
+            if (!proj.active) continue
+            shapeRenderer.color = Color.ORANGE
+            shapeRenderer.rect(proj.position.x, proj.position.y,
+                Constants.PROJECTILE_SIZE, Constants.PROJECTILE_SIZE)
         }
 
         // Collectibles

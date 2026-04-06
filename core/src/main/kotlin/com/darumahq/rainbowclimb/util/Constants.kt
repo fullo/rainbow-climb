@@ -36,6 +36,23 @@ object Constants {
 
     // Enemies
     const val ENEMY_SIZE = 16f
+    const val BOMBER_WIDTH = 16f
+    const val BOMBER_HEIGHT = 24f
+
+    // Projectiles
+    const val PROJECTILE_SIZE = 6f
+    const val PROJECTILE_SPEED = 120f
+    const val BOMB_FALL_SPEED = -150f
+    const val PROJECTILE_LIFETIME = 3f
+
+    // Enemy AI
+    const val SHOOTER_COOLDOWN = 2.5f
+    const val BOMBER_COOLDOWN = 3.0f
+    const val BOMBER_DROP_RANGE_X = 20f
+    const val BOMBER_HEIGHT_OFFSET = 60f
+    const val CHASER_DETECT_RADIUS = 96f  // 3 tiles
+    const val CHASER_DURATION = 3f
+    const val CHASER_SPEED_MULT = 2.5f
 
     // Power-ups
     const val POWERUP_SPAWN_CHANCE = 0.05f
