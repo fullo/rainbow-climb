@@ -33,8 +33,8 @@ class SpriteManager : Disposable {
     lateinit var gemAnims: Map<String, Animation<TextureRegion>>
         private set
 
-    // Backgrounds per biome
-    lateinit var backgrounds: Map<BiomeType, Texture>
+    // Backgrounds per biome (3 parallax layers each)
+    lateinit var bgLayers: Map<BiomeType, List<Texture>>
         private set
 
     // Platform textures
@@ -162,24 +162,27 @@ class SpriteManager : Disposable {
     // ── Backgrounds ──────────────────────────────────────────────
 
     private fun loadBackgrounds() {
-        val bgMap = mutableMapOf<BiomeType, Texture>()
-        val biomeToFile = mapOf(
-            BiomeType.SKY_GARDEN to "bg_sky_garden",
-            BiomeType.CLOUD_KINGDOM to "bg_cloud_kingdom",
-            BiomeType.NEON_CITY to "bg_neon_city",
-            BiomeType.CRYSTAL_CAVE to "bg_crystal_cave",
-            BiomeType.FIRE_RUINS to "bg_fire_ruins",
-            BiomeType.CANDY_LAND to "bg_candy_land",
-            BiomeType.SPACE_STATION to "bg_space_station",
-            BiomeType.HAUNTED_FOREST to "bg_haunted_forest"
+        val bgMap = mutableMapOf<BiomeType, List<Texture>>()
+        val biomeNames = mapOf(
+            BiomeType.SKY_GARDEN to "sky_garden",
+            BiomeType.CLOUD_KINGDOM to "cloud_kingdom",
+            BiomeType.NEON_CITY to "neon_city",
+            BiomeType.CRYSTAL_CAVE to "crystal_cave",
+            BiomeType.FIRE_RUINS to "fire_ruins",
+            BiomeType.CANDY_LAND to "candy_land",
+            BiomeType.SPACE_STATION to "space_station",
+            BiomeType.HAUNTED_FOREST to "haunted_forest"
         )
-        for ((biome, file) in biomeToFile) {
-            val t = Texture(Gdx.files.internal("backgrounds/$file.png"))
-            t.setFilter(Texture.TextureFilter.Nearest, Texture.TextureFilter.Nearest)
-            textures.add(t)
-            bgMap[biome] = t
+        for ((biome, name) in biomeNames) {
+            val layers = (0..2).map { i ->
+                val t = Texture(Gdx.files.internal("backgrounds/bg_${name}_${i}.png"))
+                t.setFilter(Texture.TextureFilter.Nearest, Texture.TextureFilter.Nearest)
+                textures.add(t)
+                t
+            }
+            bgMap[biome] = layers
         }
-        backgrounds = bgMap
+        bgLayers = bgMap
     }
 
     // ── Platforms ─────────────────────────────────────────────────
@@ -236,8 +239,8 @@ class SpriteManager : Disposable {
         return gemAnims[color] ?: gemAnims["blue"]!!
     }
 
-    fun getBackgroundForBiome(biomeType: BiomeType): Texture {
-        return backgrounds[biomeType] ?: backgrounds[BiomeType.SKY_GARDEN]!!
+    fun getBackgroundLayers(biomeType: BiomeType): List<Texture> {
+        return bgLayers[biomeType] ?: bgLayers[BiomeType.SKY_GARDEN]!!
     }
 
     fun getRandomFruit(seed: Int): Animation<TextureRegion> {

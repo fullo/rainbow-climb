@@ -8,18 +8,25 @@ import com.darumahq.rainbowclimb.world.Biome
 
 class ParallaxBackground(private val sprites: SpriteManager) {
 
+    // Scroll speeds for each layer (fraction of camera movement)
+    private val scrollSpeeds = floatArrayOf(0.03f, 0.12f, 0.25f)
+
     fun render(batch: SpriteBatch, cameraY: Float, biome: Biome) {
-        val bgTex = sprites.getBackgroundForBiome(biome.type)
-        val region = TextureRegion(bgTex)
+        val layers = sprites.getBackgroundLayers(biome.type)
 
-        // Draw full-screen background with slow parallax scroll
-        // The background is 240x400, same as virtual resolution
-        // Offset Y by a fraction of cameraY for parallax effect
-        val parallaxOffset = (cameraY * 0.05f) % Constants.VIRTUAL_HEIGHT
-
-        // Draw two copies for seamless vertical scrolling
         batch.setColor(Color.WHITE)
-        batch.draw(region, 0f, -parallaxOffset, Constants.VIRTUAL_WIDTH, Constants.VIRTUAL_HEIGHT)
-        batch.draw(region, 0f, Constants.VIRTUAL_HEIGHT - parallaxOffset, Constants.VIRTUAL_WIDTH, Constants.VIRTUAL_HEIGHT)
+
+        for (i in layers.indices) {
+            val tex = layers[i]
+            val region = TextureRegion(tex)
+            val speed = if (i < scrollSpeeds.size) scrollSpeeds[i] else 0.3f
+
+            // Scroll offset wrapping within one screen height
+            val offset = (cameraY * speed) % Constants.VIRTUAL_HEIGHT
+
+            // Draw two copies for seamless vertical loop
+            batch.draw(region, 0f, -offset, Constants.VIRTUAL_WIDTH, Constants.VIRTUAL_HEIGHT)
+            batch.draw(region, 0f, Constants.VIRTUAL_HEIGHT - offset, Constants.VIRTUAL_WIDTH, Constants.VIRTUAL_HEIGHT)
+        }
     }
 }

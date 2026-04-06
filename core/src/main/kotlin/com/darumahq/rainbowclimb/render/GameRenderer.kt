@@ -182,20 +182,33 @@ class GameRenderer(private val batch: SpriteBatch, private val sprites: SpriteMa
         val drawX = player.position.x + (Constants.PLAYER_WIDTH - spriteW) / 2f
         val drawY = player.position.y  // bottom-aligned, not centered
 
-        // Death fade-out effect
+        // Death: fade out without changing colors
         if (!player.isAlive) {
             val fadeAlpha = (1f - (player.stateTime / 1.5f)).coerceIn(0f, 1f)
-            batch.setColor(1f, 0.3f, 0.3f, fadeAlpha) // red tint + fade
-        }
-        // Shield tint
-        else if (player.shieldActive) {
-            batch.setColor(0.5f, 1f, 1f, 1f)
+            batch.setColor(1f, 1f, 1f, fadeAlpha)
+        } else {
+            batch.setColor(Color.WHITE) // always original colors
         }
 
+        // Draw player sprite
         if (player.facing >= 0) {
             batch.draw(frame, drawX, drawY, spriteW, spriteH)
         } else {
             batch.draw(frame, drawX + spriteW, drawY, -spriteW, spriteH)
+        }
+
+        // Shield: draw a blinking outline effect OVER the sprite (not tinting it)
+        if (player.isAlive && player.shieldActive) {
+            val blink = ((player.stateTime * 8f).toInt() % 2 == 0)
+            if (blink) {
+                batch.setColor(0.3f, 0.9f, 1f, 0.5f)
+                // Draw slightly larger for glow effect
+                if (player.facing >= 0) {
+                    batch.draw(frame, drawX - 1f, drawY - 1f, spriteW + 2f, spriteH + 2f)
+                } else {
+                    batch.draw(frame, drawX + spriteW + 1f, drawY - 1f, -spriteW - 2f, spriteH + 2f)
+                }
+            }
         }
 
         batch.setColor(Color.WHITE)

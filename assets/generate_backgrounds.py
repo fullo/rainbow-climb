@@ -1,11 +1,13 @@
 #!/usr/bin/env python3
 """
-Generate pixel art parallax backgrounds for Rainbow Climb's 8 biomes.
-Each biome gets a 240x400 background with themed pixel art elements.
-Style: 16-bit retro, coherent with Pixel Frog sprite aesthetic.
+Generate 3-layer parallax pixel art backgrounds for Rainbow Climb.
+Each biome gets 3 PNG layers (240x400) with transparency:
+  - layer0: far background (sky, gradients, stars)
+  - layer1: mid-ground (hills, buildings, clouds)
+  - layer2: foreground details (trees, crystals, effects)
 """
 
-import random
+import random, os
 from PIL import Image, ImageDraw
 
 W, H = 240, 400
@@ -13,288 +15,321 @@ W, H = 240, 400
 def lerp_color(c1, c2, t):
     return tuple(int(c1[i] + (c2[i] - c1[i]) * t) for i in range(3))
 
-def gradient(img, top_color, bottom_color):
+def gradient(img, top, bottom):
     draw = ImageDraw.Draw(img)
     for y in range(H):
-        t = y / H
-        c = lerp_color(top_color, bottom_color, t)
-        draw.line([(0, y), (W, y)], fill=c)
+        draw.line([(0, y), (W, y)], fill=lerp_color(top, bottom, y / H))
 
-def draw_stars(draw, count, color, size=1):
+def stars(draw, count, color, sz=1):
     for _ in range(count):
-        x = random.randint(0, W-1)
-        y = random.randint(0, H-1)
-        draw.rectangle([x, y, x+size, y+size], fill=color)
+        x, y = random.randint(0, W-1), random.randint(0, H-1)
+        draw.rectangle([x, y, x+sz, y+sz], fill=color)
 
-def draw_clouds(draw, count, color, y_range=(50, 200)):
+def clouds(draw, count, color, yr=(50, 200)):
     for _ in range(count):
-        x = random.randint(-20, W)
-        y = random.randint(*y_range)
-        w = random.randint(20, 50)
-        h = random.randint(8, 14)
-        # Puffy cloud shape
+        x, y = random.randint(-20, W), random.randint(*yr)
+        w, h = random.randint(20, 50), random.randint(8, 14)
         draw.ellipse([x, y, x+w, y+h], fill=color)
         draw.ellipse([x+w//4, y-h//2, x+w*3//4, y+h//2], fill=color)
-        draw.ellipse([x+w//6, y-h//3, x+w//2, y+h//3], fill=color)
 
-def draw_hills(draw, base_y, color, count=3):
+def hills(draw, base_y, color, count=3):
     for i in range(count):
         cx = int(W * (i + 0.5) / count) + random.randint(-30, 30)
         r = random.randint(40, 80)
         draw.ellipse([cx-r, base_y-r//2, cx+r, base_y+r//2], fill=color)
-    # Fill below
     draw.rectangle([0, base_y, W, H], fill=color)
 
-def draw_buildings(draw, base_y, color, accent, count=8):
+def trees(draw, base_y, trunk, leaf, count=6):
+    for _ in range(count):
+        x = random.randint(5, W-5)
+        th = random.randint(15, 30)
+        draw.rectangle([x-1, base_y-th, x+1, base_y], fill=trunk)
+        for l in range(3):
+            ly = base_y - th - l * 8
+            lw = 12 - l * 3
+            draw.polygon([(x-lw, ly), (x+lw, ly), (x, ly-10)], fill=leaf)
+
+def buildings(draw, base_y, color, accent, count=8):
     for i in range(count):
         x = int(W * i / count) + random.randint(-5, 5)
-        w = random.randint(15, 30)
-        h = random.randint(40, 120)
+        w, h = random.randint(15, 30), random.randint(40, 120)
         draw.rectangle([x, base_y-h, x+w, base_y], fill=color)
-        # Windows
         for wy in range(base_y-h+4, base_y-4, 8):
             for wx in range(x+3, x+w-3, 6):
                 if random.random() < 0.6:
                     draw.rectangle([wx, wy, wx+3, wy+3], fill=accent)
 
-def draw_stalactites(draw, color, count=12):
+def stalactites(draw, color, count=12, from_top=True):
     for _ in range(count):
-        x = random.randint(0, W)
-        h = random.randint(10, 40)
-        w = random.randint(3, 8)
-        # Triangle pointing down from top
-        draw.polygon([(x, 0), (x+w, 0), (x+w//2, h)], fill=color)
+        x, h, w = random.randint(0, W), random.randint(10, 40), random.randint(3, 8)
+        if from_top:
+            draw.polygon([(x, 0), (x+w, 0), (x+w//2, h)], fill=color)
+        else:
+            draw.polygon([(x, H), (x+w, H), (x+w//2, H-h)], fill=color)
 
-def draw_stalagmites(draw, color, count=10):
+def crystals(draw, color, glow, count=8):
     for _ in range(count):
-        x = random.randint(0, W)
-        h = random.randint(15, 50)
-        w = random.randint(4, 10)
-        draw.polygon([(x, H), (x+w, H), (x+w//2, H-h)], fill=color)
-
-def draw_trees(draw, base_y, trunk_color, leaf_color, count=6):
-    for _ in range(count):
-        x = random.randint(5, W-5)
-        trunk_h = random.randint(15, 30)
-        # Trunk
-        draw.rectangle([x-1, base_y-trunk_h, x+1, base_y], fill=trunk_color)
-        # Foliage (triangles)
-        for layer in range(3):
-            ly = base_y - trunk_h - layer * 8
-            lw = 12 - layer * 3
-            draw.polygon([(x-lw, ly), (x+lw, ly), (x, ly-10)], fill=leaf_color)
-
-def draw_crystals(draw, color, glow_color, count=8):
-    for _ in range(count):
-        x = random.randint(0, W)
-        y = random.randint(H//2, H-20)
-        h = random.randint(10, 25)
-        w = random.randint(4, 8)
-        # Crystal shape
+        x, y = random.randint(0, W), random.randint(H//2, H-20)
+        h, w = random.randint(10, 25), random.randint(4, 8)
         draw.polygon([(x, y), (x+w, y), (x+w//2, y-h)], fill=color)
-        # Glow dot
-        draw.rectangle([x+w//2-1, y-h+2, x+w//2+1, y-h+4], fill=glow_color)
+        draw.rectangle([x+w//2-1, y-h+2, x+w//2+1, y-h+4], fill=glow)
 
-def draw_lava(draw, base_y, color, bright):
-    # Wavy lava surface
-    for x in range(0, W, 2):
-        wave = int(3 * (1 + random.random()))
-        y = base_y - wave
-        draw.rectangle([x, y, x+2, H], fill=color)
-        if random.random() < 0.3:
-            draw.rectangle([x, y-2, x+2, y], fill=bright)
+def new_layer():
+    return Image.new("RGBA", (W, H), (0, 0, 0, 0))
 
-def draw_candy(draw, color1, color2, count=15):
-    for _ in range(count):
-        x = random.randint(0, W)
-        y = random.randint(0, H)
-        r = random.randint(3, 8)
-        c = color1 if random.random() < 0.5 else color2
-        draw.ellipse([x-r, y-r, x+r, y+r], fill=c)
-
-def draw_floating_platforms(draw, color, count=5):
-    for _ in range(count):
-        x = random.randint(0, W-30)
-        y = random.randint(50, H-50)
-        w = random.randint(20, 40)
-        draw.rectangle([x, y, x+w, y+4], fill=color)
+def new_opaque(top, bottom):
+    img = Image.new("RGB", (W, H))
+    gradient(img, top, bottom)
+    return img.convert("RGBA")
 
 
 # ============================================================
-# BIOME GENERATORS
+# SKY GARDEN
 # ============================================================
-
 def sky_garden():
-    img = Image.new("RGB", (W, H))
-    draw = ImageDraw.Draw(img)
-    gradient(img, (135, 206, 235), (200, 230, 255))
-    draw_clouds(draw, 8, (255, 255, 255, 200), y_range=(20, 150))
-    draw_clouds(draw, 4, (230, 240, 255), y_range=(60, 200))
-    draw_hills(draw, 320, (100, 180, 80))
-    draw_hills(draw, 350, (80, 150, 60))
-    draw_trees(draw, 320, (80, 60, 40), (50, 160, 50), count=8)
-    draw_trees(draw, 350, (60, 45, 30), (40, 130, 40), count=6)
-    # Flowers
-    for _ in range(20):
-        x, y = random.randint(0, W), random.randint(320, H)
-        c = random.choice([(255,100,100), (255,200,50), (200,100,255), (255,150,200)])
-        draw.rectangle([x, y, x+2, y+2], fill=c)
-    return img
+    l0 = new_opaque((135, 206, 235), (180, 220, 245))
+    d0 = ImageDraw.Draw(l0)
+    clouds(d0, 5, (255, 255, 255, 180), yr=(20, 120))
 
-def cloud_kingdom():
-    img = Image.new("RGB", (W, H))
-    draw = ImageDraw.Draw(img)
-    gradient(img, (200, 220, 255), (240, 245, 255))
-    # Big fluffy clouds
-    draw_clouds(draw, 12, (255, 255, 255), y_range=(30, 350))
-    draw_clouds(draw, 6, (245, 248, 255), y_range=(50, 300))
-    # Golden accents
-    draw_stars(draw, 15, (255, 215, 0), size=2)
-    # Floating platforms
-    draw_floating_platforms(draw, (220, 200, 170), count=4)
-    return img
+    l1 = new_layer()
+    d1 = ImageDraw.Draw(l1)
+    hills(d1, 300, (120, 195, 100))
+    hills(d1, 340, (95, 170, 75))
+    clouds(d1, 4, (240, 245, 255, 160), yr=(40, 180))
 
-def neon_city():
-    img = Image.new("RGB", (W, H))
-    draw = ImageDraw.Draw(img)
-    gradient(img, (15, 5, 40), (30, 15, 60))
-    # Stars
-    draw_stars(draw, 40, (150, 150, 200), size=1)
-    # City skyline - back layer
-    draw_buildings(draw, 350, (20, 15, 50), (0, 255, 230), count=6)
-    # Front layer
-    draw_buildings(draw, 380, (30, 20, 60), (255, 50, 200), count=8)
-    # Neon signs (bright dots)
+    l2 = new_layer()
+    d2 = ImageDraw.Draw(l2)
+    trees(d2, 300, (80, 60, 40), (50, 160, 50), 5)
+    trees(d2, 340, (60, 45, 30), (40, 130, 40), 4)
     for _ in range(25):
-        x, y = random.randint(0, W), random.randint(250, 380)
-        c = random.choice([(255,0,200), (0,255,230), (255,100,0), (150,0,255)])
-        draw.rectangle([x, y, x+3, y+2], fill=c)
-    return img
+        x, y = random.randint(0, W), random.randint(300, H)
+        c = random.choice([(255,100,100),(255,200,50),(200,100,255),(255,150,200)])
+        d2.rectangle([x, y, x+2, y+2], fill=c)
+    return l0, l1, l2
 
-def crystal_cave():
-    img = Image.new("RGB", (W, H))
-    draw = ImageDraw.Draw(img)
-    gradient(img, (10, 20, 50), (15, 30, 60))
-    draw_stalactites(draw, (25, 40, 70), count=15)
-    draw_stalagmites(draw, (20, 35, 65), count=12)
-    draw_crystals(draw, (50, 130, 170), (100, 220, 255), count=10)
-    draw_crystals(draw, (40, 100, 140), (80, 200, 230), count=6)
-    # Ambient glow particles
+# ============================================================
+# CLOUD KINGDOM
+# ============================================================
+def cloud_kingdom():
+    l0 = new_opaque((200, 220, 255), (230, 240, 255))
+    d0 = ImageDraw.Draw(l0)
+    stars(d0, 10, (255, 215, 0, 200), sz=2)
+
+    l1 = new_layer()
+    d1 = ImageDraw.Draw(l1)
+    clouds(d1, 10, (255, 255, 255, 200), yr=(30, 350))
+
+    l2 = new_layer()
+    d2 = ImageDraw.Draw(l2)
+    clouds(d2, 6, (245, 248, 255, 220), yr=(50, 300))
+    for _ in range(4):
+        x, y = random.randint(0, W-30), random.randint(100, 350)
+        w = random.randint(20, 40)
+        d2.rectangle([x, y, x+w, y+4], fill=(220, 200, 170, 200))
+    return l0, l1, l2
+
+# ============================================================
+# NEON CITY
+# ============================================================
+def neon_city():
+    l0 = new_opaque((15, 5, 40), (25, 12, 55))
+    d0 = ImageDraw.Draw(l0)
+    stars(d0, 50, (150, 150, 200, 180), sz=1)
+    stars(d0, 10, (200, 200, 255, 220), sz=2)
+
+    l1 = new_layer()
+    d1 = ImageDraw.Draw(l1)
+    buildings(d1, 350, (25, 18, 55, 200), (0, 200, 180, 230), count=6)
+
+    l2 = new_layer()
+    d2 = ImageDraw.Draw(l2)
+    buildings(d2, 380, (35, 25, 65, 220), (255, 50, 200, 230), count=8)
     for _ in range(30):
-        x, y = random.randint(0, W), random.randint(0, H)
-        draw.rectangle([x, y, x+1, y+1], fill=(80, 180, 220))
-    return img
+        x, y = random.randint(0, W), random.randint(260, 390)
+        c = random.choice([(255,0,200,230),(0,255,230,230),(255,100,0,200),(150,0,255,200)])
+        d2.rectangle([x, y, x+3, y+2], fill=c)
+    return l0, l1, l2
 
-def fire_ruins():
-    img = Image.new("RGB", (W, H))
-    draw = ImageDraw.Draw(img)
-    gradient(img, (40, 10, 5), (80, 25, 10))
-    # Ruined columns
-    for _ in range(5):
-        x = random.randint(10, W-20)
-        h = random.randint(60, 150)
-        w = random.randint(8, 14)
-        draw.rectangle([x, H-h, x+w, H], fill=(100, 50, 30))
-        # Broken top
-        draw.rectangle([x-2, H-h, x+w+2, H-h+4], fill=(110, 60, 35))
-    # Embers/sparks
+# ============================================================
+# CRYSTAL CAVE
+# ============================================================
+def crystal_cave():
+    l0 = new_opaque((10, 20, 50), (15, 30, 60))
+    d0 = ImageDraw.Draw(l0)
     for _ in range(40):
         x, y = random.randint(0, W), random.randint(0, H)
-        c = random.choice([(255,100,0), (255,200,50), (255,50,0)])
-        draw.rectangle([x, y, x+1, y+1], fill=c)
-    # Lava at bottom
-    draw_lava(draw, H-30, (200, 50, 0), (255, 150, 0))
-    return img
+        d0.rectangle([x, y, x+1, y+1], fill=(60, 140, 180, 100))
 
-def candy_land():
-    img = Image.new("RGB", (W, H))
-    draw = ImageDraw.Draw(img)
-    gradient(img, (255, 220, 240), (255, 240, 250))
-    # Candy elements
-    draw_candy(draw, (255, 150, 200), (200, 255, 200), count=20)
-    # Lollipop sticks
-    for _ in range(5):
-        x = random.randint(20, W-20)
-        draw.rectangle([x-1, 200, x+1, H], fill=(200, 150, 100))
-        r = random.randint(8, 14)
-        c = random.choice([(255,100,150), (150,200,255), (200,255,150), (255,200,100)])
-        draw.ellipse([x-r, 200-r, x+r, 200+r], fill=c)
-    # Cloud-like cotton candy
-    draw_clouds(draw, 6, (255, 200, 220), y_range=(40, 180))
-    draw_clouds(draw, 4, (200, 230, 255), y_range=(60, 160))
-    # Sprinkles
+    l1 = new_layer()
+    d1 = ImageDraw.Draw(l1)
+    stalactites(d1, (30, 50, 80, 180), count=10, from_top=True)
+    stalactites(d1, (25, 45, 75, 180), count=8, from_top=False)
+
+    l2 = new_layer()
+    d2 = ImageDraw.Draw(l2)
+    crystals(d2, (50, 130, 170, 220), (100, 220, 255, 255), count=10)
+    crystals(d2, (80, 160, 200, 200), (150, 240, 255, 255), count=5)
+    stalactites(d2, (40, 60, 90, 200), count=6, from_top=True)
+    return l0, l1, l2
+
+# ============================================================
+# FIRE RUINS
+# ============================================================
+def fire_ruins():
+    l0 = new_opaque((40, 10, 5), (70, 20, 8))
+    d0 = ImageDraw.Draw(l0)
     for _ in range(50):
         x, y = random.randint(0, W), random.randint(0, H)
-        c = random.choice([(255,100,100),(100,255,100),(100,100,255),(255,255,100),(255,100,255)])
-        draw.rectangle([x, y, x+1, y+2], fill=c)
-    return img
+        c = random.choice([(255,100,0,80),(255,200,50,60),(255,50,0,70)])
+        d0.rectangle([x, y, x+1, y+1], fill=c)
 
+    l1 = new_layer()
+    d1 = ImageDraw.Draw(l1)
+    for _ in range(5):
+        x = random.randint(10, W-20)
+        h, w = random.randint(60, 150), random.randint(8, 14)
+        d1.rectangle([x, H-h, x+w, H], fill=(100, 50, 30, 200))
+        d1.rectangle([x-2, H-h, x+w+2, H-h+4], fill=(110, 60, 35, 200))
+
+    l2 = new_layer()
+    d2 = ImageDraw.Draw(l2)
+    # Lava at bottom
+    for x in range(0, W, 2):
+        wave = int(3 * (1 + random.random()))
+        y = H - 30 - wave
+        d2.rectangle([x, y, x+2, H], fill=(200, 50, 0, 220))
+        if random.random() < 0.3:
+            d2.rectangle([x, y-2, x+2, y], fill=(255, 150, 0, 240))
+    for _ in range(20):
+        x, y = random.randint(0, W), random.randint(0, H-40)
+        c = random.choice([(255,120,0,150),(255,200,50,120)])
+        d2.rectangle([x, y, x+1, y+1], fill=c)
+    return l0, l1, l2
+
+# ============================================================
+# CANDY LAND
+# ============================================================
+def candy_land():
+    l0 = new_opaque((255, 220, 240), (255, 235, 248))
+    d0 = ImageDraw.Draw(l0)
+    for _ in range(40):
+        x, y = random.randint(0, W), random.randint(0, H)
+        c = random.choice([(255,100,100,60),(100,255,100,60),(100,100,255,60),(255,255,100,60)])
+        d0.rectangle([x, y, x+1, y+2], fill=c)
+
+    l1 = new_layer()
+    d1 = ImageDraw.Draw(l1)
+    clouds(d1, 5, (255, 200, 220, 180), yr=(40, 180))
+    clouds(d1, 3, (200, 230, 255, 160), yr=(60, 160))
+    for _ in range(10):
+        x, y = random.randint(0, W), random.randint(0, H)
+        r = random.randint(3, 8)
+        c = random.choice([(255,150,200,150),(200,255,200,150)])
+        d1.ellipse([x-r, y-r, x+r, y+r], fill=c)
+
+    l2 = new_layer()
+    d2 = ImageDraw.Draw(l2)
+    for _ in range(5):
+        x = random.randint(20, W-20)
+        d2.rectangle([x-1, 200, x+1, H], fill=(200, 150, 100, 200))
+        r = random.randint(8, 14)
+        c = random.choice([(255,100,150,220),(150,200,255,220),(200,255,150,220)])
+        d2.ellipse([x-r, 200-r, x+r, 200+r], fill=c)
+    for _ in range(30):
+        x, y = random.randint(0, W), random.randint(0, H)
+        c = random.choice([(255,100,100,180),(100,255,100,180),(100,100,255,180),(255,255,100,180)])
+        d2.rectangle([x, y, x+1, y+2], fill=c)
+    return l0, l1, l2
+
+# ============================================================
+# SPACE STATION
+# ============================================================
 def space_station():
-    img = Image.new("RGB", (W, H))
-    draw = ImageDraw.Draw(img)
-    gradient(img, (2, 2, 15), (5, 5, 25))
-    # Stars - many layers
-    draw_stars(draw, 80, (200, 200, 220), size=1)
-    draw_stars(draw, 20, (255, 255, 255), size=2)
-    draw_stars(draw, 5, (100, 150, 255), size=3)
-    # Nebula glow
-    for _ in range(8):
+    l0 = new_opaque((2, 2, 15), (5, 5, 25))
+    d0 = ImageDraw.Draw(l0)
+    stars(d0, 100, (180, 180, 200, 200), sz=1)
+    stars(d0, 25, (255, 255, 255, 240), sz=2)
+    for _ in range(6):
         x, y = random.randint(0, W), random.randint(0, H)
         r = random.randint(15, 40)
-        c = random.choice([(20,10,60), (10,20,50), (30,10,40)])
-        draw.ellipse([x-r, y-r, x+r, y+r], fill=c)
-    # Station elements
-    for _ in range(3):
-        x = random.randint(20, W-60)
-        y = random.randint(200, 350)
-        w, h = random.randint(30, 60), random.randint(15, 25)
-        draw.rectangle([x, y, x+w, y+h], fill=(50, 50, 70))
-        draw.rectangle([x+2, y+2, x+w-2, y+h-2], fill=(40, 40, 55))
-        # Lights
-        for lx in range(x+4, x+w-4, 6):
-            draw.rectangle([lx, y+h-3, lx+2, y+h-1], fill=(50, 150, 255))
-    return img
+        c = random.choice([(20,10,60,40),(10,20,50,40),(30,10,40,40)])
+        d0.ellipse([x-r, y-r, x+r, y+r], fill=c)
 
+    l1 = new_layer()
+    d1 = ImageDraw.Draw(l1)
+    stars(d1, 8, (100, 150, 255, 180), sz=3)
+    # Distant planet
+    px, py = random.randint(50, 190), random.randint(50, 150)
+    d1.ellipse([px-20, py-20, px+20, py+20], fill=(40, 60, 100, 150))
+    d1.ellipse([px-18, py-18, px+15, py+15], fill=(50, 70, 110, 150))
+
+    l2 = new_layer()
+    d2 = ImageDraw.Draw(l2)
+    for _ in range(3):
+        x, y = random.randint(20, W-60), random.randint(200, 350)
+        w, h = random.randint(30, 60), random.randint(15, 25)
+        d2.rectangle([x, y, x+w, y+h], fill=(50, 50, 70, 200))
+        d2.rectangle([x+2, y+2, x+w-2, y+h-2], fill=(40, 40, 55, 200))
+        for lx in range(x+4, x+w-4, 6):
+            d2.rectangle([lx, y+h-3, lx+2, y+h-1], fill=(50, 150, 255, 255))
+    return l0, l1, l2
+
+# ============================================================
+# HAUNTED FOREST
+# ============================================================
 def haunted_forest():
-    img = Image.new("RGB", (W, H))
-    draw = ImageDraw.Draw(img)
-    gradient(img, (10, 20, 15), (20, 35, 25))
-    # Fog
-    for _ in range(6):
-        x = random.randint(-30, W)
-        y = random.randint(200, 350)
+    l0 = new_opaque((10, 20, 15), (18, 32, 22))
+    d0 = ImageDraw.Draw(l0)
+    # Moon
+    d0.ellipse([160, 30, 190, 60], fill=(180, 190, 170, 200))
+    d0.ellipse([165, 28, 192, 55], fill=(10, 20, 15, 200))  # crescent shadow
+
+    l1 = new_layer()
+    d1 = ImageDraw.Draw(l1)
+    for _ in range(5):
+        x, y = random.randint(-30, W), random.randint(220, 360)
         w = random.randint(40, 80)
-        draw.ellipse([x, y, x+w, y+15], fill=(30, 50, 35))
-    # Dead trees
-    for _ in range(8):
+        d1.ellipse([x, y, x+w, y+15], fill=(30, 50, 35, 120))
+    # Back trees (silhouettes)
+    for _ in range(6):
         x = random.randint(5, W-5)
-        h = random.randint(80, 200)
-        draw.rectangle([x-2, H-h, x+2, H], fill=(30, 25, 20))
-        # Branches
-        for _ in range(3):
+        h = random.randint(100, 220)
+        d1.rectangle([x-3, H-h, x+3, H], fill=(18, 22, 15, 200))
+        for _ in range(4):
             by = H - h + random.randint(10, h//2)
             bdir = random.choice([-1, 1])
-            blen = random.randint(8, 20)
-            draw.line([(x, by), (x + bdir*blen, by - random.randint(3, 10))],
-                     fill=(35, 30, 25), width=1)
-    # Glowing eyes
+            blen = random.randint(10, 25)
+            d1.line([(x, by), (x + bdir*blen, by - random.randint(3, 12))],
+                   fill=(22, 28, 18, 180), width=2)
+
+    l2 = new_layer()
+    d2 = ImageDraw.Draw(l2)
+    # Front trees
     for _ in range(4):
-        x = random.randint(10, W-10)
-        y = random.randint(150, 350)
-        draw.rectangle([x, y, x+2, y+2], fill=(200, 50, 200))
-        draw.rectangle([x+5, y, x+7, y+2], fill=(200, 50, 200))
+        x = random.randint(5, W-5)
+        h = random.randint(60, 150)
+        d2.rectangle([x-2, H-h, x+2, H], fill=(25, 20, 15, 220))
+        for _ in range(3):
+            by = H - h + random.randint(5, h//3)
+            bdir = random.choice([-1, 1])
+            d2.line([(x, by), (x + bdir*random.randint(6, 18), by - random.randint(2, 8))],
+                   fill=(30, 25, 18, 200), width=1)
+    # Glowing eyes
+    for _ in range(5):
+        x, y = random.randint(10, W-10), random.randint(150, 360)
+        d2.rectangle([x, y, x+2, y+2], fill=(200, 50, 200, 220))
+        d2.rectangle([x+5, y, x+7, y+2], fill=(200, 50, 200, 220))
     # Fireflies
-    for _ in range(15):
+    for _ in range(20):
         x, y = random.randint(0, W), random.randint(0, H)
-        draw.rectangle([x, y, x+1, y+1], fill=(150, 255, 100))
-    return img
+        d2.rectangle([x, y, x+1, y+1], fill=(150, 255, 100, 200))
+    return l0, l1, l2
 
 
 # ============================================================
 # GENERATE ALL
 # ============================================================
-
-random.seed(42)  # Deterministic for reproducibility
+random.seed(42)
 
 biomes = {
     "sky_garden": sky_garden,
@@ -307,14 +342,19 @@ biomes = {
     "haunted_forest": haunted_forest,
 }
 
-import os
 out_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "backgrounds")
 os.makedirs(out_dir, exist_ok=True)
 
-for name, gen_func in biomes.items():
-    img = gen_func()
-    path = os.path.join(out_dir, f"bg_{name}.png")
-    img.save(path)
-    print(f"Generated: bg_{name}.png ({img.width}x{img.height})")
+# Remove old single-layer files
+for f in os.listdir(out_dir):
+    if f.startswith("bg_") and f.endswith(".png"):
+        os.remove(os.path.join(out_dir, f))
 
-print(f"\nAll backgrounds saved to: {out_dir}")
+for name, gen_func in biomes.items():
+    l0, l1, l2 = gen_func()
+    for i, layer in enumerate([l0, l1, l2]):
+        path = os.path.join(out_dir, f"bg_{name}_{i}.png")
+        layer.save(path)
+    print(f"Generated: bg_{name}_0/1/2.png (3 layers @ {W}x{H})")
+
+print(f"\n{len(biomes) * 3} layers saved to: {out_dir}")
