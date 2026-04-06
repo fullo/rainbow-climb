@@ -15,6 +15,7 @@ class World(seed: Long = System.currentTimeMillis()) {
     val collectibles = mutableListOf<Collectible>()
     val rainbows = mutableListOf<Rainbow>()
     val projectiles = mutableListOf<Projectile>()
+    val boss = Boss()
 
     // Staging lists to avoid concurrent modification
     private val pendingProjectiles = mutableListOf<Projectile>()
@@ -22,7 +23,7 @@ class World(seed: Long = System.currentTimeMillis()) {
 
     // Events for renderer (particle effects, sounds)
     data class GameEvent(val type: EventType, val x: Float, val y: Float)
-    enum class EventType { COLLECT, ENEMY_DEATH, PLAYER_DEATH, RAINBOW_SHOOT }
+    enum class EventType { COLLECT, ENEMY_DEATH, PLAYER_DEATH, RAINBOW_SHOOT, BOSS_HIT, BOSS_DEATH }
     val events = mutableListOf<GameEvent>()
 
     private var frameDelta = 0f
@@ -158,6 +159,10 @@ class World(seed: Long = System.currentTimeMillis()) {
 
         // Update entities
         player.update(delta)
+        if (boss.active) {
+            boss.update(delta, player.position.x, player.position.y)
+            handleBossCollisions()
+        }
         platforms.forEach { it.update(delta) }
         enemies.forEach { it.update(delta) }
         updateEnemyAI()
@@ -470,6 +475,48 @@ class World(seed: Long = System.currentTimeMillis()) {
         }
     }
 
+    private fun handleBossCollisions() {
+        if (!boss.active || boss.state == Boss.State.DEAD) return
+
+        // Boss hits player
+        if (player.bounds.overlaps(boss.bounds) && boss.state != Boss.State.HIT) {
+            if (player.shieldActive) {
+                player.shieldActive = false
+            } else {
+                killPlayer()
+            }
+        }
+
+        // Rainbows hit boss
+        for (rainbow in rainbows) {
+            if (!rainbow.active) continue
+            if (rainbow.bounds.overlaps(boss.bounds)) {
+                boss.takeDamage()
+                rainbow.active = false
+                shakeTimer = 0.2f
+                shakeIntensity = 4f
+                score += 50
+                events.add(GameEvent(EventType.BOSS_HIT, boss.position.x, boss.position.y))
+
+                if (boss.hp <= 0) {
+                    score += 500
+                    events.add(GameEvent(EventType.BOSS_DEATH, boss.position.x, boss.position.y))
+                    // Drop lots of gems
+                    for (i in 0 until 10) {
+                        val c = Collectible()
+                        c.activate(
+                            boss.position.x + random.nextFloat(-30f, 30f),
+                            boss.position.y + random.nextFloat(0f, 40f),
+                            CollectibleType.GEM
+                        )
+                        pendingCollectibles.add(c)
+                    }
+                }
+                break
+            }
+        }
+    }
+
     fun shootRainbow(direction: Int) {
         if (!player.shootRainbow()) return
         val rainbow = Rainbow()
@@ -484,6 +531,15 @@ class World(seed: Long = System.currentTimeMillis()) {
             biomeOrder = Biome.ALL.shuffled(java.util.Random(random.seed + currentLevel))
         }
         currentBiome = biomeOrder[biomeIndex]
+
+        // Spawn boss every 5 levels (if no boss active)
+        if (currentLevel > 0 && currentLevel % 5 == 0 && !boss.active) {
+            boss.activate(
+                Constants.VIRTUAL_WIDTH / 2f - Boss.WIDTH / 2f,
+                cameraY + Constants.VIRTUAL_HEIGHT * 0.7f,
+                currentLevel / 5
+            )
+        }
     }
 
     private fun cleanUp() {
@@ -506,6 +562,7 @@ class World(seed: Long = System.currentTimeMillis()) {
         collectibles.clear()
         rainbows.clear()
         projectiles.clear()
+        boss.reset()
         player.reset()
         cameraY = 0f
         scrollSpeed = Constants.BASE_SCROLL_SPEED

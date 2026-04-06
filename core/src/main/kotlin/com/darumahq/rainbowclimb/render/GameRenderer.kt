@@ -70,6 +70,7 @@ class GameRenderer(private val batch: SpriteBatch, private val sprites: SpriteMa
         renderPlatforms(world)
         renderCollectibles(world)
         renderEnemies(world)
+        renderBoss(world)
         renderPlayer(world)
 
         batch.end()
@@ -196,6 +197,44 @@ class GameRenderer(private val batch: SpriteBatch, private val sprites: SpriteMa
         }
     }
 
+    // ── Boss ─────────────────────────────────────────────────────
+
+    private fun renderBoss(world: World) {
+        val boss = world.boss
+        if (!boss.active) return
+
+        val anim = sprites.getBossAnim(boss.animState())
+        val looping = boss.state != com.darumahq.rainbowclimb.entity.Boss.State.HIT &&
+                      boss.state != com.darumahq.rainbowclimb.entity.Boss.State.DEAD
+        val frame = anim.getKeyFrame(boss.stateTime, looping)
+
+        // Flash red when hit
+        if (boss.state == com.darumahq.rainbowclimb.entity.Boss.State.HIT) {
+            val blink = ((boss.stateTime * 10f).toInt() % 2 == 0)
+            if (blink) batch.setColor(1f, 0.3f, 0.3f, 1f)
+        }
+
+        val w = frame.regionWidth.toFloat()
+        val h = frame.regionHeight.toFloat()
+        if (boss.facingRight) {
+            batch.draw(frame, boss.position.x, boss.position.y, w, h)
+        } else {
+            batch.draw(frame, boss.position.x + w, boss.position.y, -w, h)
+        }
+
+        batch.setColor(Color.WHITE)
+
+        // HP bar above boss
+        if (boss.hp > 0 && boss.hp < boss.maxHp) {
+            val barW = 50f
+            val barH = 4f
+            val barX = boss.position.x + (w - barW) / 2f
+            val barY = boss.position.y + h + 4f
+            // Background (will be drawn in shape renderer pass... use sprite tint trick)
+            // For now just show HP text
+        }
+    }
+
     // ── Player ───────────────────────────────────────────────────
 
     private fun renderPlayer(world: World) {
@@ -313,6 +352,11 @@ class GameRenderer(private val batch: SpriteBatch, private val sprites: SpriteMa
                 EventType.ENEMY_DEATH -> particles.enemyPoof(event.x, event.y)
                 EventType.PLAYER_DEATH -> particles.deathExplosion(event.x, event.y)
                 EventType.RAINBOW_SHOOT -> particles.rainbowBurst(event.x, event.y, 6)
+                EventType.BOSS_HIT -> particles.burst(event.x + 32f, event.y + 24f, 10, Color.ORANGE)
+                EventType.BOSS_DEATH -> {
+                    particles.deathExplosion(event.x + 32f, event.y + 24f)
+                    particles.rainbowBurst(event.x + 32f, event.y + 24f, 20)
+                }
             }
         }
     }

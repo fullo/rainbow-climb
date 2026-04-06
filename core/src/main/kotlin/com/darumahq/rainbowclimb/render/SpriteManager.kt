@@ -24,6 +24,10 @@ class SpriteManager : Disposable {
     lateinit var enemyAnims: Map<EnemyType, Map<String, Animation<TextureRegion>>>
         private set
 
+    // Boss animations
+    lateinit var bossAnims: Map<String, Animation<TextureRegion>>
+        private set
+
     // Collectible fruit animations (list, pick randomly)
     lateinit var fruitAnims: List<Animation<TextureRegion>>
         private set
@@ -55,6 +59,7 @@ class SpriteManager : Disposable {
     fun load() {
         loadPlayerAnims()
         loadEnemyAnims()
+        loadBossAnims()
         loadCollectibleAnims()
         loadGemAnims()
         loadBackgrounds()
@@ -144,6 +149,23 @@ class SpriteManager : Disposable {
             }
         }
         return map
+    }
+
+    // ── Boss ─────────────────────────────────────────────────────
+
+    private fun loadBossAnims() {
+        val map = mutableMapOf<String, Animation<TextureRegion>>()
+        val base = "sprites/boss"
+        for (name in listOf("idle", "run", "attack", "jump")) {
+            map[name] = loadStrip("$base/$name.png", 64, 48)
+        }
+        map["hit"] = loadStrip("$base/hit.png", 64, 48, playMode = Animation.PlayMode.NORMAL)
+        map["dead"] = loadStrip("$base/dead.png", 64, 48, playMode = Animation.PlayMode.NORMAL)
+        bossAnims = map
+    }
+
+    fun getBossAnim(state: String): Animation<TextureRegion> {
+        return bossAnims[state] ?: bossAnims["idle"]!!
     }
 
     // ── Collectibles ─────────────────────────────────────────────
