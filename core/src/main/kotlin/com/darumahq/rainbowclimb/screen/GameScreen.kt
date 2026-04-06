@@ -48,7 +48,7 @@ class GameScreen(private val game: RainbowClimbGame) : ScreenAdapter() {
         if (!world.player.isAlive) {
             sfx.playDeath()
             musicEngine.stop()
-            game.setScreen(GameOverScreen(game, world.score, world.maxHeight.toInt(), world.currentLevel))
+            game.setScreen(GameOverScreen(game, world.score, world.maxHeight.toInt(), world.currentLevel, world.currentSeed))
         }
     }
 

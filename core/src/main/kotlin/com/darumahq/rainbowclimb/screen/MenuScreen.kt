@@ -58,9 +58,12 @@ class MenuScreen(private val game: RainbowClimbGame) : ScreenAdapter() {
         }
 
         font.color = Color.GRAY
-        drawCentered("Arrow keys / Touch to move", 80f)
-        drawCentered("Space / 2nd finger to jump", 64f)
-        drawCentered("Z/X/C or Swipe for rainbow", 48f)
+        drawCentered("Arrow keys / Touch to move", 100f)
+        drawCentered("Space / 2nd finger to jump", 84f)
+        drawCentered("Z/X/C or Swipe for rainbow", 68f)
+
+        font.color = Color.SKY
+        drawCentered("[S] Settings", 40f)
 
         game.batch.end()
 
@@ -70,6 +73,11 @@ class MenuScreen(private val game: RainbowClimbGame) : ScreenAdapter() {
             Gdx.input.isKeyJustPressed(Input.Keys.ENTER)
         ) {
             game.setScreen(GameScreen(game))
+        }
+
+        // Settings
+        if (Gdx.input.isKeyJustPressed(Input.Keys.S)) {
+            game.setScreen(SettingsScreen(game))
         }
     }
 

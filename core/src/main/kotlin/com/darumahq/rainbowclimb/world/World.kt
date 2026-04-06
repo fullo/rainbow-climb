@@ -5,6 +5,7 @@ import com.darumahq.rainbowclimb.util.Constants
 import com.darumahq.rainbowclimb.util.SeededRandom
 
 class World(seed: Long = System.currentTimeMillis()) {
+    val currentSeed = seed
     val random = SeededRandom(seed)
     val player = Player()
     val generator = ChunkGenerator(random)
@@ -18,6 +19,11 @@ class World(seed: Long = System.currentTimeMillis()) {
     // Staging lists to avoid concurrent modification
     private val pendingProjectiles = mutableListOf<Projectile>()
     private val pendingCollectibles = mutableListOf<Collectible>()
+
+    // Events for renderer (particle effects, sounds)
+    data class GameEvent(val type: EventType, val x: Float, val y: Float)
+    enum class EventType { COLLECT, ENEMY_DEATH, PLAYER_DEATH, RAINBOW_SHOOT }
+    val events = mutableListOf<GameEvent>()
 
     private var frameDelta = 0f
 
@@ -97,6 +103,7 @@ class World(seed: Long = System.currentTimeMillis()) {
     fun update(delta: Float) {
         if (!player.isAlive) return
         frameDelta = delta
+        events.clear()
 
         // Update scroll speed based on level
         val speedMult = if (player.slowTimeTimer > 0) 0.5f else 1f
@@ -144,6 +151,7 @@ class World(seed: Long = System.currentTimeMillis()) {
 
         // Check death: fell below camera
         if (player.position.y < cameraY - Constants.PLAYER_HEIGHT) {
+            events.add(GameEvent(EventType.PLAYER_DEATH, player.position.x, player.position.y))
             player.isAlive = false
         }
 
@@ -243,6 +251,7 @@ class World(seed: Long = System.currentTimeMillis()) {
             if (player.bounds.overlaps(collectible.bounds)) {
                 collectible.active = false
                 score += collectible.scoreValue
+                events.add(GameEvent(EventType.COLLECT, collectible.position.x, collectible.position.y))
                 applyCollectible(collectible.type)
             }
         }
@@ -278,6 +287,7 @@ class World(seed: Long = System.currentTimeMillis()) {
             for (enemy in enemies) {
                 if (!enemy.active) continue
                 if (rainbow.bounds.overlaps(enemy.bounds)) {
+                    events.add(GameEvent(EventType.ENEMY_DEATH, enemy.position.x, enemy.position.y))
                     enemy.active = false
                     score += 25
                     spawnEnemyDrop(enemy.position.x, enemy.position.y)
@@ -380,6 +390,7 @@ class World(seed: Long = System.currentTimeMillis()) {
         val rainbow = Rainbow()
         rainbow.activate(player.position.x, player.position.y, direction)
         rainbows.add(rainbow)
+        events.add(GameEvent(EventType.RAINBOW_SHOOT, player.position.x, player.position.y))
     }
 
     private fun updateBiome() {

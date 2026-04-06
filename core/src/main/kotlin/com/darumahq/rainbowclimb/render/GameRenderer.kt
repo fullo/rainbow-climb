@@ -11,12 +11,14 @@ import com.badlogic.gdx.utils.viewport.FitViewport
 import com.darumahq.rainbowclimb.entity.EnemyType
 import com.darumahq.rainbowclimb.util.Constants
 import com.darumahq.rainbowclimb.world.World
+import com.darumahq.rainbowclimb.world.World.EventType
 
 class GameRenderer(private val batch: SpriteBatch, private val sprites: SpriteManager) {
     val camera = OrthographicCamera()
     val viewport = FitViewport(Constants.VIRTUAL_WIDTH, Constants.VIRTUAL_HEIGHT, camera)
     private val shapeRenderer = ShapeRenderer()
     private val parallax = ParallaxBackground(sprites)
+    private val particles = ParticleSystem()
     private val hudCamera = OrthographicCamera()
 
     private val rainbowColors = listOf(
@@ -36,6 +38,10 @@ class GameRenderer(private val batch: SpriteBatch, private val sprites: SpriteMa
 
         Gdx.gl.glClearColor(0f, 0f, 0f, 1f)
         Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT)
+
+        // Update particles
+        val delta = Gdx.graphics.deltaTime.coerceAtMost(0.033f)
+        particles.update(delta)
 
         // ── Background (uses HUD camera for full-screen fill) ──
         batch.projectionMatrix = hudCamera.combined
@@ -63,6 +69,10 @@ class GameRenderer(private val batch: SpriteBatch, private val sprites: SpriteMa
 
         renderRainbows(world)
         renderProjectiles(world)
+
+        // Process game events into particles
+        processEvents(world)
+        particles.render(shapeRenderer)
 
         shapeRenderer.end()
 
@@ -139,13 +149,12 @@ class GameRenderer(private val batch: SpriteBatch, private val sprites: SpriteMa
             val spriteW = frame.regionWidth.toFloat()
             val spriteH = frame.regionHeight.toFloat()
 
-            // Collision box size
+            // Collision box width for centering
             val collW = if (enemy.type == EnemyType.BOMBER) Constants.BOMBER_WIDTH else Constants.ENEMY_SIZE
-            val collH = if (enemy.type == EnemyType.BOMBER) Constants.BOMBER_HEIGHT else Constants.ENEMY_SIZE
 
-            // Center sprite on collision box
+            // Align sprite: centered X, bottom-aligned Y (feet on platform)
             val drawX = enemy.position.x + (collW - spriteW) / 2f
-            val drawY = enemy.position.y + (collH - spriteH) / 2f
+            val drawY = enemy.position.y  // bottom-aligned
 
             if (enemy.facingRight) {
                 batch.draw(frame, drawX, drawY, spriteW, spriteH)
@@ -169,9 +178,9 @@ class GameRenderer(private val batch: SpriteBatch, private val sprites: SpriteMa
         val spriteW = frame.regionWidth.toFloat()
         val spriteH = frame.regionHeight.toFloat()
 
-        // Center sprite on collision box (16x24 collision, 16x16 sprite)
+        // Align sprite to bottom of collision box (feet on platform)
         val drawX = player.position.x + (Constants.PLAYER_WIDTH - spriteW) / 2f
-        val drawY = player.position.y + (Constants.PLAYER_HEIGHT - spriteH) / 2f
+        val drawY = player.position.y  // bottom-aligned, not centered
 
         // Shield tint
         if (player.shieldActive) {
@@ -235,6 +244,17 @@ class GameRenderer(private val batch: SpriteBatch, private val sprites: SpriteMa
         // Biome name
         font.draw(batch, world.currentBiome.name,
             Constants.VIRTUAL_WIDTH / 2f - 30f, Constants.VIRTUAL_HEIGHT - 4f)
+    }
+
+    private fun processEvents(world: World) {
+        for (event in world.events) {
+            when (event.type) {
+                EventType.COLLECT -> particles.sparkle(event.x, event.y)
+                EventType.ENEMY_DEATH -> particles.enemyPoof(event.x, event.y)
+                EventType.PLAYER_DEATH -> particles.deathExplosion(event.x, event.y)
+                EventType.RAINBOW_SHOOT -> particles.rainbowBurst(event.x, event.y, 6)
+            }
+        }
     }
 
     fun resize(width: Int, height: Int) {
