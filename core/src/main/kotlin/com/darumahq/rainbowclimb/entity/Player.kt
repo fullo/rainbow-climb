@@ -5,7 +5,8 @@ import com.badlogic.gdx.math.Vector2
 import com.darumahq.rainbowclimb.util.Constants
 
 class Player {
-    val position = Vector2(Constants.VIRTUAL_WIDTH / 2f, 32f)
+    val position = Vector2(Constants.VIRTUAL_WIDTH / 2f - Constants.PLAYER_WIDTH / 2f,
+        Constants.VIRTUAL_HEIGHT / 2f)
     val velocity = Vector2(0f, 0f)
     val bounds = Rectangle()
 
@@ -139,7 +140,8 @@ class Player {
     }
 
     fun reset() {
-        position.set(Constants.VIRTUAL_WIDTH / 2f, 32f)
+        position.set(Constants.VIRTUAL_WIDTH / 2f - Constants.PLAYER_WIDTH / 2f,
+            Constants.VIRTUAL_HEIGHT / 2f)
         velocity.set(0f, 0f)
         isOnGround = false
         isAlive = true

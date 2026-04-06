@@ -68,24 +68,25 @@ class World(seed: Long = System.currentTimeMillis()) {
     }
 
     private fun generateStartingArea() {
-        // Ground platform — full screen width so player can't die immediately
+        // Starting platform at center screen — full width, player spawns on it
+        val startY = Constants.VIRTUAL_HEIGHT / 2f - 10f  // just below player spawn
         val ground = Platform()
-        ground.activate(0f, 0f, Constants.VIRTUAL_WIDTH, PlatformType.STATIC)
+        ground.activate(0f, startY, Constants.VIRTUAL_WIDTH, PlatformType.STATIC)
         platforms.add(ground)
 
-        // Easy platforms with generous widths, scaled for 480x800
+        // Easy platforms above the starting point
         val easyPlatforms = listOf(
-            PlatformDef(120f, 120f, 120f, PlatformType.STATIC),
-            PlatformDef(50f, 240f, 100f, PlatformType.STATIC),
-            PlatformDef(280f, 340f, 100f, PlatformType.STATIC),
-            PlatformDef(100f, 460f, 110f, PlatformType.STATIC),
+            PlatformDef(120f, startY + 120f, 120f, PlatformType.STATIC),
+            PlatformDef(300f, startY + 220f, 100f, PlatformType.STATIC),
+            PlatformDef(50f, startY + 330f, 110f, PlatformType.STATIC),
+            PlatformDef(250f, startY + 430f, 100f, PlatformType.STATIC),
         )
         for (def in easyPlatforms) {
             val p = Platform()
             p.activate(def.x, def.y, def.width, def.type)
             platforms.add(p)
         }
-        highestGeneratedY = 560f
+        highestGeneratedY = startY + 530f
     }
 
     private fun generateChunksUpTo(targetY: Float) {
