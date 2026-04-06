@@ -261,6 +261,11 @@ class GameRenderer(private val batch: SpriteBatch, private val sprites: SpriteMa
         if (!player.isAlive) {
             val fadeAlpha = (1f - (player.stateTime / 1.5f)).coerceIn(0f, 1f)
             batch.setColor(1f, 1f, 1f, fadeAlpha)
+        } else if (player.isInvincible) {
+            // Invincibility blink: 5 blinks in 5 seconds (1Hz sine wave)
+            val blinkPhase = kotlin.math.sin((player.invincibleTimer * Math.PI * 2.0 / 1.0)).toFloat()
+            val alpha = if (blinkPhase > 0f) 1f else 0.3f
+            batch.setColor(1f, 1f, 1f, alpha)
         } else {
             batch.setColor(Color.WHITE) // always original colors
         }

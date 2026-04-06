@@ -68,24 +68,24 @@ class World(seed: Long = System.currentTimeMillis()) {
     }
 
     private fun generateStartingArea() {
-        // Ground platform
+        // Ground platform — full screen width so player can't die immediately
         val ground = Platform()
         ground.activate(0f, 0f, Constants.VIRTUAL_WIDTH, PlatformType.STATIC)
         platforms.add(ground)
 
-        // A few easy platforms to get started
+        // Easy platforms with generous widths, scaled for 480x800
         val easyPlatforms = listOf(
-            PlatformDef(80f, 60f, 64f, PlatformType.STATIC),
-            PlatformDef(30f, 120f, 56f, PlatformType.STATIC),
-            PlatformDef(140f, 170f, 48f, PlatformType.STATIC),
-            PlatformDef(60f, 230f, 56f, PlatformType.STATIC),
+            PlatformDef(120f, 120f, 120f, PlatformType.STATIC),
+            PlatformDef(50f, 240f, 100f, PlatformType.STATIC),
+            PlatformDef(280f, 340f, 100f, PlatformType.STATIC),
+            PlatformDef(100f, 460f, 110f, PlatformType.STATIC),
         )
         for (def in easyPlatforms) {
             val p = Platform()
             p.activate(def.x, def.y, def.width, def.type)
             platforms.add(p)
         }
-        highestGeneratedY = 280f
+        highestGeneratedY = 560f
     }
 
     private fun generateChunksUpTo(targetY: Float) {
@@ -187,7 +187,12 @@ class World(seed: Long = System.currentTimeMillis()) {
 
         // Check death: fell below camera
         if (player.position.y < cameraY - Constants.PLAYER_HEIGHT) {
-            killPlayer()
+            if (player.isInvincible) {
+                // Auto-rescue during invincibility
+                respawnPlayer()
+            } else {
+                killPlayer()
+            }
         }
 
         // Flush staged entities
@@ -283,7 +288,14 @@ class World(seed: Long = System.currentTimeMillis()) {
         for (enemy in enemies) {
             if (!enemy.active) continue
             if (player.bounds.overlaps(enemy.bounds)) {
-                if (player.shieldActive) {
+                if (player.isInvincible) {
+                    // Invincible: destroy enemy on contact
+                    enemy.active = false
+                    enemiesKilled++
+                    score += 25
+                    events.add(GameEvent(EventType.ENEMY_DEATH, enemy.position.x, enemy.position.y))
+                    spawnEnemyDrop(enemy.position.x, enemy.position.y)
+                } else if (player.shieldActive) {
                     player.shieldActive = false
                     enemy.active = false
                     score += 25
@@ -379,34 +391,26 @@ class World(seed: Long = System.currentTimeMillis()) {
     }
 
     private fun respawnPlayer() {
-        // Find the best platform to respawn on (closest to camera center, visible)
-        val cameraCenter = cameraY + Constants.VIRTUAL_HEIGHT / 2f
-        var bestPlatform: Platform? = null
-        var bestDist = Float.MAX_VALUE
+        // Create a rescue platform at mid-screen
+        val rescueY = cameraY + Constants.VIRTUAL_HEIGHT / 2f
+        val rescuePlatform = Platform()
+        rescuePlatform.activate(
+            Constants.VIRTUAL_WIDTH / 2f - Constants.VIRTUAL_WIDTH / 4f,
+            rescueY,
+            Constants.VIRTUAL_WIDTH / 2f,  // half screen width
+            PlatformType.STATIC
+        )
+        platforms.add(rescuePlatform)
 
-        for (platform in platforms) {
-            if (!platform.active) continue
-            val platCenterY = platform.position.y
-            // Must be within visible area
-            if (platCenterY < cameraY || platCenterY > cameraY + Constants.VIRTUAL_HEIGHT) continue
-            val dist = kotlin.math.abs(platCenterY - cameraCenter)
-            if (dist < bestDist) {
-                bestDist = dist
-                bestPlatform = platform
-            }
-        }
-
-        if (bestPlatform != null) {
-            player.position.set(bestPlatform.position.x + bestPlatform.width / 2f,
-                bestPlatform.position.y + 10f)
-        } else {
-            // Fallback: center of screen
-            player.position.set(Constants.VIRTUAL_WIDTH / 2f, cameraY + Constants.VIRTUAL_HEIGHT / 2f)
-        }
+        // Place player on the rescue platform
+        player.position.set(Constants.VIRTUAL_WIDTH / 2f - Constants.PLAYER_WIDTH / 2f,
+            rescueY + 10f)
         player.velocity.set(0f, 0f)
-        player.isOnGround = false
-        // Brief invincibility via shield
-        player.shieldActive = true
+        player.isOnGround = true
+
+        // 5 seconds of invincibility (blinks 5 times = 1 blink per second)
+        player.invincibleTimer = 5f
+        player.shieldActive = false  // no shield, use invincibility instead
     }
 
     private fun handleRainbowEnemyCollisions() {
@@ -503,7 +507,9 @@ class World(seed: Long = System.currentTimeMillis()) {
         for (proj in projectiles) {
             if (!proj.active) continue
             if (player.bounds.overlaps(proj.bounds)) {
-                if (player.shieldActive) {
+                if (player.isInvincible) {
+                    proj.active = false  // destroy projectile, no damage
+                } else if (player.shieldActive) {
                     player.shieldActive = false
                     proj.active = false
                 } else {
@@ -519,7 +525,9 @@ class World(seed: Long = System.currentTimeMillis()) {
 
         // Boss hits player
         if (player.bounds.overlaps(boss.bounds) && boss.state != Boss.State.HIT) {
-            if (player.shieldActive) {
+            if (player.isInvincible) {
+                // No damage during invincibility
+            } else if (player.shieldActive) {
                 player.shieldActive = false
             } else {
                 killPlayer()

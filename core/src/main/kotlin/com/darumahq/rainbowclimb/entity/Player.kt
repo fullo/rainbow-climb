@@ -20,6 +20,10 @@ class Player {
     var maxRainbowAmmo = Constants.RAINBOW_MAX_AMMO
     var rainbowRegenTimer = 0f
 
+    // Invincibility (on respawn: 5 seconds, blinks 5 times)
+    var invincibleTimer = 0f
+    val isInvincible: Boolean get() = invincibleTimer > 0f
+
     // Power-up timers
     var shieldActive = false
     var magnetTimer = 0f
@@ -72,6 +76,9 @@ class Player {
 
         // Update bounds for collision
         bounds.set(position.x, position.y, Constants.PLAYER_WIDTH, Constants.PLAYER_HEIGHT)
+
+        // Tick invincibility
+        if (invincibleTimer > 0) invincibleTimer -= delta
 
         // Regenerate rainbow ammo
         rainbowRegenTimer += delta
@@ -140,6 +147,7 @@ class Player {
         rainbowAmmo = Constants.RAINBOW_MAX_AMMO
         maxRainbowAmmo = Constants.RAINBOW_MAX_AMMO
         rainbowRegenTimer = 0f
+        invincibleTimer = 0f
         shieldActive = false
         magnetTimer = 0f
         slowTimeTimer = 0f
