@@ -235,8 +235,8 @@ class SpriteManager : Disposable {
         textures.add(crumbleTex)
         platformCrumble = TextureRegion(crumbleTex)
 
-        // Rainbow bridge (animated glowing platform)
-        rainbowBridge = loadStrip("tiles/platform_brown_on.png", 32, 8)
+        // Rainbow bridge (animated glowing platform — grey to distinguish from normal)
+        rainbowBridge = loadStrip("tiles/platform_grey_on.png", 32, 8)
     }
 
     // ── Font ─────────────────────────────────────────────────────

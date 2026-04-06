@@ -9,21 +9,24 @@ class Rainbow {
     val bounds = Rectangle()
     var active = false
     var timer = 0f
-    var direction = 0 // -1 left, 0 up, 1 right
+    var direction = 1 // -1 left, 1 right (no more vertical)
 
     fun activate(startX: Float, startY: Float, dir: Int) {
         active = true
         timer = Constants.RAINBOW_DURATION
-        direction = dir
+        direction = if (dir >= 0) 1 else -1
 
-        // Position the rainbow arc relative to the player
-        when (dir) {
-            -1 -> position.set(startX - Constants.RAINBOW_LENGTH, startY + Constants.PLAYER_HEIGHT * 0.5f)
-            0 -> position.set(startX - Constants.RAINBOW_WIDTH / 2f, startY + Constants.PLAYER_HEIGHT)
-            1 -> position.set(startX + Constants.PLAYER_WIDTH, startY + Constants.PLAYER_HEIGHT * 0.5f)
+        // Position the rainbow platform relative to the player
+        // Always horizontal: creates a bridge in the direction the player faces
+        val offsetY = Constants.PLAYER_HEIGHT * 0.4f  // slightly below player center
+        if (direction == -1) {
+            position.set(startX - Constants.RAINBOW_LENGTH, startY + offsetY)
+        } else {
+            position.set(startX + Constants.PLAYER_WIDTH, startY + offsetY)
         }
 
-        updateBounds()
+        // Horizontal platform bounds
+        bounds.set(position.x, position.y, Constants.RAINBOW_LENGTH, Constants.RAINBOW_WIDTH)
     }
 
     fun update(delta: Float) {
@@ -31,16 +34,6 @@ class Rainbow {
         timer -= delta
         if (timer <= 0f) {
             active = false
-        }
-    }
-
-    private fun updateBounds() {
-        if (direction == 0) {
-            // Vertical rainbow
-            bounds.set(position.x, position.y, Constants.RAINBOW_WIDTH, Constants.RAINBOW_LENGTH)
-        } else {
-            // Horizontal rainbow
-            bounds.set(position.x, position.y, Constants.RAINBOW_LENGTH, Constants.RAINBOW_WIDTH)
         }
     }
 

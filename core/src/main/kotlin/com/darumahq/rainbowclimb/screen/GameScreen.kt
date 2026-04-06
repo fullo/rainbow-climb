@@ -114,15 +114,11 @@ class GameScreen(private val game: RainbowClimbGame) : ScreenAdapter() {
             sfx.playJump()
         }
 
-        // Rainbow
-        val rainbowDir = when {
-            Gdx.input.isKeyJustPressed(Input.Keys.Z) -> -1
-            Gdx.input.isKeyJustPressed(Input.Keys.X) -> 0
-            Gdx.input.isKeyJustPressed(Input.Keys.C) -> 1
-            else -> inputHandler.consumeRainbow()
-        }
-        if (rainbowDir != -2) {
-            world.shootRainbow(rainbowDir)
+        // Rainbow — Z key or swipe, direction follows player facing
+        val swipeDir = inputHandler.consumeRainbow()
+        if (Gdx.input.isKeyJustPressed(Input.Keys.Z) || swipeDir != -2) {
+            val dir = world.player.facing  // -1 left, 1 right
+            world.shootRainbow(dir)
             sfx.playRainbow()
         }
 

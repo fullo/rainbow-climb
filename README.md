@@ -59,16 +59,15 @@ The APK will be at `android/build/outputs/apk/debug/android-debug.apk`.
 |-----|--------|
 | Arrow keys / A,D | Move left/right |
 | Space / W / Up | Jump |
-| Z | Rainbow left |
-| X | Rainbow up |
-| C | Rainbow right |
+| Z | Create rainbow bridge (direction follows player) |
+| P | Pause |
 
 ### Mobile
 | Input | Action |
 |-------|--------|
 | Touch left/right half | Move |
 | Second finger tap | Jump |
-| Swipe up/left/right | Shoot rainbow |
+| Swipe | Create rainbow bridge |
 
 ## Credits
 

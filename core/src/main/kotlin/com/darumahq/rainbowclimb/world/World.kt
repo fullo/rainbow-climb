@@ -236,14 +236,21 @@ class World(seed: Long = System.currentTimeMillis()) {
             if (checkPlatformLanding(platform)) break
         }
 
-        // Check rainbow platforms
+        // Check rainbow platforms (same robust check as normal platforms)
         for (rainbow in rainbows) {
             if (!rainbow.active) continue
-            if (player.velocity.y <= 0 &&
-                player.bounds.overlaps(rainbow.bounds) &&
-                player.position.y >= rainbow.position.y + rainbow.bounds.height * 0.5f
+            if (player.velocity.y > 0) continue // moving up, skip
+
+            val playerBottom = player.position.y
+            val rainbowTop = rainbow.position.y + rainbow.bounds.height
+
+            // Horizontal overlap check
+            if (player.bounds.x + player.bounds.width > rainbow.bounds.x &&
+                player.bounds.x < rainbow.bounds.x + rainbow.bounds.width &&
+                playerBottom >= rainbow.position.y - 4f &&
+                playerBottom <= rainbowTop + 8f
             ) {
-                player.position.y = rainbow.position.y + rainbow.bounds.height
+                player.position.y = rainbowTop
                 player.velocity.y = 0f
                 player.isOnGround = true
                 break
