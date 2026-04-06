@@ -27,6 +27,14 @@ class GameScreen(private val game: RainbowClimbGame) : ScreenAdapter() {
         Gdx.input.setCatchKey(Input.Keys.BACK, true)
         musicEngine.updateForBiome(world.currentBiome)
         musicEngine.start()
+
+        // Show tutorial on first ever game
+        val prefs = Gdx.app.getPreferences("rainbow-climb")
+        if (!prefs.getBoolean("tutorialDone", false)) {
+            renderer.showTutorial = true
+            prefs.putBoolean("tutorialDone", true)
+            prefs.flush()
+        }
     }
 
     override fun render(delta: Float) {

@@ -23,7 +23,7 @@ class World(seed: Long = System.currentTimeMillis()) {
 
     // Events for renderer (particle effects, sounds)
     data class GameEvent(val type: EventType, val x: Float, val y: Float)
-    enum class EventType { COLLECT, ENEMY_DEATH, PLAYER_DEATH, RAINBOW_SHOOT, BOSS_HIT, BOSS_DEATH }
+    enum class EventType { COLLECT, ENEMY_DEATH, PLAYER_DEATH, RAINBOW_SHOOT, BOSS_HIT, BOSS_DEATH, ACHIEVEMENT }
     val events = mutableListOf<GameEvent>()
 
     private var frameDelta = 0f
@@ -41,6 +41,12 @@ class World(seed: Long = System.currentTimeMillis()) {
     // Screen shake
     var shakeTimer = 0f
     var shakeIntensity = 0f
+
+    var enemiesKilled = 0
+    var bossesDefeated = 0
+    var gameTime = 0f
+    var rainbowsShot = 0
+    var newAchievement: String? = null  // set when an achievement unlocks this frame
 
     var maxHeight = 0f
     var currentLevel = 0
@@ -116,6 +122,8 @@ class World(seed: Long = System.currentTimeMillis()) {
         if (!player.isAlive) return
         frameDelta = delta
         events.clear()
+        newAchievement = null
+        gameTime += delta
 
         // Combo timer decay
         if (comboTimer > 0) {
@@ -194,6 +202,29 @@ class World(seed: Long = System.currentTimeMillis()) {
 
         // Clean up off-screen entities
         cleanUp()
+        checkAchievements()
+    }
+
+    private fun checkAchievements() {
+        fun tryUnlock(a: Achievement) {
+            if (Achievement.unlock(a)) {
+                newAchievement = a.displayName
+                events.add(GameEvent(EventType.ACHIEVEMENT, player.position.x, player.position.y + 40f))
+            }
+        }
+        if (rainbowsShot >= 1) tryUnlock(Achievement.FIRST_RAINBOW)
+        if (score >= 1000) tryUnlock(Achievement.SCORE_1000)
+        if (score >= 5000) tryUnlock(Achievement.SCORE_5000)
+        if (score >= 10000) tryUnlock(Achievement.SCORE_10000)
+        if (enemiesKilled >= 10) tryUnlock(Achievement.KILL_10)
+        if (enemiesKilled >= 50) tryUnlock(Achievement.KILL_50)
+        if (comboMultiplier >= 3) tryUnlock(Achievement.COMBO_X3)
+        if (comboMultiplier >= 4) tryUnlock(Achievement.COMBO_X4)
+        if (bossesDefeated >= 1) tryUnlock(Achievement.BOSS_DEFEAT)
+        if (gameTime >= 180f) tryUnlock(Achievement.SURVIVE_3MIN)
+        if (gemsCollected >= 100) tryUnlock(Achievement.COLLECT_100_GEMS)
+        if (currentLevel >= 10) tryUnlock(Achievement.LEVEL_10)
+        if (currentLevel >= 25) tryUnlock(Achievement.LEVEL_25)
     }
 
     private fun handlePlatformCollisions() {
@@ -379,6 +410,7 @@ class World(seed: Long = System.currentTimeMillis()) {
                 if (rainbow.bounds.overlaps(enemy.bounds)) {
                     events.add(GameEvent(EventType.ENEMY_DEATH, enemy.position.x, enemy.position.y))
                     enemy.active = false
+                    enemiesKilled++
                     score += 25
                     spawnEnemyDrop(enemy.position.x, enemy.position.y)
                 }
@@ -499,6 +531,7 @@ class World(seed: Long = System.currentTimeMillis()) {
                 events.add(GameEvent(EventType.BOSS_HIT, boss.position.x, boss.position.y))
 
                 if (boss.hp <= 0) {
+                    bossesDefeated++
                     score += 500
                     events.add(GameEvent(EventType.BOSS_DEATH, boss.position.x, boss.position.y))
                     // Drop lots of gems
@@ -522,6 +555,7 @@ class World(seed: Long = System.currentTimeMillis()) {
         val rainbow = Rainbow()
         rainbow.activate(player.position.x, player.position.y, direction)
         rainbows.add(rainbow)
+        rainbowsShot++
         events.add(GameEvent(EventType.RAINBOW_SHOOT, player.position.x, player.position.y))
     }
 
@@ -574,6 +608,11 @@ class World(seed: Long = System.currentTimeMillis()) {
         comboTimer = 0f
         shakeTimer = 0f
         shakeIntensity = 0f
+        enemiesKilled = 0
+        bossesDefeated = 0
+        gameTime = 0f
+        rainbowsShot = 0
+        newAchievement = null
         maxHeight = 0f
         currentLevel = 0
         highestGeneratedY = 0f

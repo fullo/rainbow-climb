@@ -22,6 +22,9 @@ class GameRenderer(private val batch: SpriteBatch, private val sprites: SpriteMa
     private val shapeRenderer = ShapeRenderer()
     private val parallax = ParallaxBackground(sprites)
     private val particles = ParticleSystem()
+    private var achievementTimer = 0f
+    private var lastAchievementName = ""
+    var showTutorial = false  // set by GameScreen on first play
     private val hudCamera = OrthographicCamera()
 
     // Rainbow colors kept for menu screen
@@ -52,9 +55,11 @@ class GameRenderer(private val batch: SpriteBatch, private val sprites: SpriteMa
         Gdx.gl.glClearColor(0f, 0f, 0f, 1f)
         Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT)
 
-        // Update particles
+        // Update particles and timers
         val delta = Gdx.graphics.deltaTime.coerceAtMost(0.033f)
         particles.update(delta)
+        if (achievementTimer > 0) achievementTimer -= delta
+        if (world.newAchievement != null) lastAchievementName = world.newAchievement!!
 
         // ── Background (uses HUD camera for full-screen fill) ──
         batch.projectionMatrix = hudCamera.combined
@@ -329,6 +334,46 @@ class GameRenderer(private val batch: SpriteBatch, private val sprites: SpriteMa
         font.draw(batch, world.currentBiome.name,
             Constants.VIRTUAL_WIDTH / 2f - 30f, Constants.VIRTUAL_HEIGHT - 4f)
 
+        // Tutorial hints (first game only)
+        if (showTutorial) {
+            font.color = Color(1f, 1f, 1f, 0.8f)
+            val height = world.player.position.y
+            when {
+                height < 100f -> {
+                    drawHUDCentered(font, "< > Arrow keys to move", Constants.VIRTUAL_HEIGHT * 0.35f)
+                    drawHUDCentered(font, "Touch left/right side on mobile", Constants.VIRTUAL_HEIGHT * 0.3f)
+                }
+                height < 250f -> {
+                    drawHUDCentered(font, "SPACE to jump!", Constants.VIRTUAL_HEIGHT * 0.35f)
+                    drawHUDCentered(font, "Tap with 2nd finger on mobile", Constants.VIRTUAL_HEIGHT * 0.3f)
+                }
+                height < 500f -> {
+                    drawHUDCentered(font, "Z/X/C = Rainbow left/up/right", Constants.VIRTUAL_HEIGHT * 0.35f)
+                    drawHUDCentered(font, "Swipe on mobile", Constants.VIRTUAL_HEIGHT * 0.3f)
+                }
+                height < 800f -> {
+                    drawHUDCentered(font, "Rainbows create platforms!", Constants.VIRTUAL_HEIGHT * 0.35f)
+                    drawHUDCentered(font, "They also defeat enemies", Constants.VIRTUAL_HEIGHT * 0.3f)
+                }
+                height < 1200f -> {
+                    drawHUDCentered(font, "Collect gems for extra lives", Constants.VIRTUAL_HEIGHT * 0.35f)
+                    drawHUDCentered(font, "100 gems = +1 life", Constants.VIRTUAL_HEIGHT * 0.3f)
+                }
+                else -> showTutorial = false // tutorial done
+            }
+        }
+
+        // Achievement popup
+        if (achievementTimer > 0 && lastAchievementName.isNotEmpty()) {
+            val alpha = if (achievementTimer < 0.5f) achievementTimer * 2f else 1f
+            font.color = Color(0.2f, 1f, 0.2f, alpha)
+            val achText = "ACHIEVEMENT: $lastAchievementName"
+            val achLayout = com.badlogic.gdx.graphics.g2d.GlyphLayout(font, achText)
+            font.draw(batch, achText,
+                (Constants.VIRTUAL_WIDTH - achLayout.width) / 2f,
+                Constants.VIRTUAL_HEIGHT * 0.7f)
+        }
+
         // Combo display (center screen, fading)
         if (world.comboMultiplier > 1) {
             val comboAlpha = (world.comboMultiplier.toFloat() / 4f).coerceIn(0.5f, 1f)
@@ -357,8 +402,17 @@ class GameRenderer(private val batch: SpriteBatch, private val sprites: SpriteMa
                     particles.deathExplosion(event.x + 32f, event.y + 24f)
                     particles.rainbowBurst(event.x + 32f, event.y + 24f, 20)
                 }
+                EventType.ACHIEVEMENT -> {
+                    particles.rainbowBurst(event.x, event.y, 15)
+                    achievementTimer = 3f // show for 3 seconds
+                }
             }
         }
+    }
+
+    private fun drawHUDCentered(font: com.badlogic.gdx.graphics.g2d.BitmapFont, text: String, y: Float) {
+        val layout = com.badlogic.gdx.graphics.g2d.GlyphLayout(font, text)
+        font.draw(batch, text, (Constants.VIRTUAL_WIDTH - layout.width) / 2f, y)
     }
 
     fun resize(width: Int, height: Int) {
