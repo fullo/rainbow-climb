@@ -7,7 +7,6 @@ import com.badlogic.gdx.ScreenAdapter
 import com.badlogic.gdx.graphics.Color
 import com.badlogic.gdx.graphics.GL20
 import com.badlogic.gdx.graphics.OrthographicCamera
-import com.badlogic.gdx.graphics.g2d.BitmapFont
 import com.badlogic.gdx.graphics.g2d.GlyphLayout
 import com.darumahq.rainbowclimb.RainbowClimbGame
 import com.darumahq.rainbowclimb.util.Constants
@@ -19,14 +18,13 @@ class GameOverScreen(
     private val level: Int
 ) : ScreenAdapter() {
     private val camera = OrthographicCamera()
-    private val font = BitmapFont()
+    private val font get() = game.sprites.pixelFont
     private var animTimer = 0f
     private val highScore: Int
     private val isNewBest: Boolean
 
     init {
         camera.setToOrtho(false, Constants.VIRTUAL_WIDTH, Constants.VIRTUAL_HEIGHT)
-        font.data.setScale(0.5f)
 
         // Load and update high score
         val prefs: Preferences = Gdx.app.getPreferences("rainbow-climb")
@@ -97,6 +95,6 @@ class GameOverScreen(
     }
 
     override fun dispose() {
-        font.dispose()
+        // Font owned by SpriteManager, not disposed here
     }
 }

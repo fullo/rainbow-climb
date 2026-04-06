@@ -6,18 +6,17 @@ import com.badlogic.gdx.ScreenAdapter
 import com.badlogic.gdx.graphics.Color
 import com.badlogic.gdx.graphics.GL20
 import com.badlogic.gdx.graphics.OrthographicCamera
-import com.badlogic.gdx.graphics.g2d.BitmapFont
+import com.badlogic.gdx.graphics.g2d.GlyphLayout
 import com.badlogic.gdx.graphics.glutils.ShapeRenderer
 import com.darumahq.rainbowclimb.RainbowClimbGame
 import com.darumahq.rainbowclimb.util.Constants
 
 class MenuScreen(private val game: RainbowClimbGame) : ScreenAdapter() {
     private val camera = OrthographicCamera()
-    private val font = BitmapFont()
+    private val font get() = game.sprites.pixelFont
     private val shapeRenderer = ShapeRenderer()
     private var animTimer = 0f
 
-    // Rainbow colors for title animation
     private val rainbowColors = listOf(
         Color.RED, Color.ORANGE, Color.YELLOW,
         Color.GREEN, Color.CYAN, Color.BLUE, Color.VIOLET
@@ -25,7 +24,6 @@ class MenuScreen(private val game: RainbowClimbGame) : ScreenAdapter() {
 
     init {
         camera.setToOrtho(false, Constants.VIRTUAL_WIDTH, Constants.VIRTUAL_HEIGHT)
-        font.data.setScale(0.5f)
     }
 
     override fun render(delta: Float) {
@@ -41,7 +39,6 @@ class MenuScreen(private val game: RainbowClimbGame) : ScreenAdapter() {
         shapeRenderer.begin(ShapeRenderer.ShapeType.Filled)
         for (i in rainbowColors.indices) {
             val y = 240f + i * 4f
-            val offset = (animTimer * 30f + i * 10f) % Constants.VIRTUAL_WIDTH
             shapeRenderer.color = rainbowColors[i]
             shapeRenderer.rect(0f, y, Constants.VIRTUAL_WIDTH, 3f)
         }
@@ -77,7 +74,7 @@ class MenuScreen(private val game: RainbowClimbGame) : ScreenAdapter() {
     }
 
     private fun drawCentered(text: String, y: Float) {
-        val layout = com.badlogic.gdx.graphics.g2d.GlyphLayout(font, text)
+        val layout = GlyphLayout(font, text)
         font.draw(game.batch, text, (Constants.VIRTUAL_WIDTH - layout.width) / 2f, y)
     }
 
@@ -86,7 +83,6 @@ class MenuScreen(private val game: RainbowClimbGame) : ScreenAdapter() {
     }
 
     override fun dispose() {
-        font.dispose()
         shapeRenderer.dispose()
     }
 }

@@ -12,7 +12,7 @@ import com.darumahq.rainbowclimb.world.World
 
 class GameScreen(private val game: RainbowClimbGame) : ScreenAdapter() {
     private val world = World()
-    private val renderer = GameRenderer(game.batch)
+    private val renderer = GameRenderer(game.batch, game.sprites)
     private val inputHandler = TouchInputHandler()
     private val musicEngine = MusicEngine()
     private val sfx = SfxManager()

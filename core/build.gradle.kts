@@ -7,6 +7,7 @@ plugins {
 
 dependencies {
     implementation("com.badlogicgames.gdx:gdx:$gdxVersion")
+    implementation("com.badlogicgames.gdx:gdx-freetype:$gdxVersion")
     implementation("org.jetbrains.kotlin:kotlin-stdlib:$kotlinVersion")
 }
 

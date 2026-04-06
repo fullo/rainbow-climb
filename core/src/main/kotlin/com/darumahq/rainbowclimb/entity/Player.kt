@@ -29,8 +29,28 @@ class Player {
     // Facing direction: 1 = right, -1 = left
     var facing = 1
 
+    // Animation
+    var stateTime = 0f
+    private var previousAnimState = "idle"
+
+    fun animState(): String {
+        if (!isAlive) return "hit"
+        if (!isOnGround && velocity.y > 0) return "jump"
+        if (!isOnGround && velocity.y <= 0) return "fall"
+        if (velocity.x != 0f) return "run"
+        return "idle"
+    }
+
     fun update(delta: Float) {
         if (!isAlive) return
+
+        // Update animation timing
+        val currentAnim = animState()
+        if (currentAnim != previousAnimState) {
+            stateTime = 0f
+            previousAnimState = currentAnim
+        }
+        stateTime += delta
 
         // Apply gravity
         velocity.y += Constants.GRAVITY * delta
@@ -126,5 +146,7 @@ class Player {
         hasDoubleJump = false
         doubleJumpUsed = false
         facing = 1
+        stateTime = 0f
+        previousAnimState = "idle"
     }
 }

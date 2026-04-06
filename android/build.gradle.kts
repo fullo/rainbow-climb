@@ -48,5 +48,10 @@ dependencies {
     implementation("com.badlogicgames.gdx:gdx-platform:$gdxVersion:natives-arm64-v8a")
     implementation("com.badlogicgames.gdx:gdx-platform:$gdxVersion:natives-x86")
     implementation("com.badlogicgames.gdx:gdx-platform:$gdxVersion:natives-x86_64")
+    implementation("com.badlogicgames.gdx:gdx-freetype:$gdxVersion")
+    implementation("com.badlogicgames.gdx:gdx-freetype-platform:$gdxVersion:natives-armeabi-v7a")
+    implementation("com.badlogicgames.gdx:gdx-freetype-platform:$gdxVersion:natives-arm64-v8a")
+    implementation("com.badlogicgames.gdx:gdx-freetype-platform:$gdxVersion:natives-x86")
+    implementation("com.badlogicgames.gdx:gdx-freetype-platform:$gdxVersion:natives-x86_64")
     implementation("org.jetbrains.kotlin:kotlin-stdlib:$kotlinVersion")
 }

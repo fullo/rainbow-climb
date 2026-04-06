@@ -39,6 +39,11 @@ class Enemy {
     var chaseTargetX = 0f
     var chaseTargetY = 0f
 
+    // Animation
+    var stateTime = 0f
+    var facingRight = true
+    var attackAnimTimer = 0f
+
     fun activate(x: Float, y: Float, enemyType: EnemyType, speed: Float = 40f) {
         position.set(x, y)
         type = enemyType
@@ -50,6 +55,9 @@ class Enemy {
         wantsToFire = false
         chaseTimer = 0f
         isChasing = false
+        stateTime = 0f
+        facingRight = true
+        attackAnimTimer = 0f
 
         when (type) {
             EnemyType.WALKER -> {
@@ -80,8 +88,31 @@ class Enemy {
         }
     }
 
+    fun animState(): String {
+        if (attackAnimTimer > 0) return when (type) {
+            EnemyType.SHOOTER -> "attack"
+            EnemyType.BOMBER -> "throw"
+            else -> "idle"
+        }
+        return when (type) {
+            EnemyType.WALKER -> if (velocity.x != 0f) "run" else "idle"
+            EnemyType.FLYER -> "spin"
+            EnemyType.HOPPER -> when {
+                velocity.y > 0 -> "jump"
+                velocity.y < -50f -> "fall"
+                else -> "idle"
+            }
+            EnemyType.SHOOTER -> "idle"
+            EnemyType.BOMBER -> if (velocity.x != 0f) "run" else "idle"
+            EnemyType.CHASER -> if (isChasing) "run" else "idle"
+        }
+    }
+
     fun update(delta: Float) {
         if (!active) return
+
+        stateTime += delta
+        if (attackAnimTimer > 0) attackAnimTimer -= delta
 
         when (type) {
             EnemyType.WALKER -> updateWalker(delta)
@@ -113,9 +144,11 @@ class Enemy {
         if (position.x <= patrolMinX) {
             position.x = patrolMinX
             velocity.x = kotlin.math.abs(velocity.x)
+            facingRight = true
         } else if (position.x >= patrolMaxX) {
             position.x = patrolMaxX
             velocity.x = -kotlin.math.abs(velocity.x)
+            facingRight = false
         }
     }
 
@@ -141,6 +174,7 @@ class Enemy {
         shootTimer -= delta
         if (shootTimer <= 0f) {
             wantsToFire = true
+            attackAnimTimer = 0.3f
             shootTimer = Constants.SHOOTER_COOLDOWN
         }
     }
@@ -162,6 +196,7 @@ class Enemy {
         shootTimer -= delta
         if (shootTimer <= 0f) {
             wantsToFire = true
+            attackAnimTimer = 0.25f
             shootTimer = Constants.BOMBER_COOLDOWN
         }
     }
@@ -198,5 +233,8 @@ class Enemy {
         wantsToFire = false
         chaseTimer = 0f
         isChasing = false
+        stateTime = 0f
+        facingRight = true
+        attackAnimTimer = 0f
     }
 }

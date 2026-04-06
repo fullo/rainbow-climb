@@ -10,11 +10,17 @@ dependencies {
     implementation(project(":core"))
     implementation("com.badlogicgames.gdx:gdx-backend-lwjgl3:$gdxVersion")
     implementation("com.badlogicgames.gdx:gdx-platform:$gdxVersion:natives-desktop")
+    implementation("com.badlogicgames.gdx:gdx-freetype-platform:$gdxVersion:natives-desktop")
     implementation("org.jetbrains.kotlin:kotlin-stdlib:$kotlinVersion")
 }
 
 application {
     mainClass.set("com.darumahq.rainbowclimb.DesktopLauncherKt")
+    applicationDefaultJvmArgs = if (System.getProperty("os.name").lowercase().contains("mac")) {
+        listOf("-XstartOnFirstThread")
+    } else {
+        emptyList()
+    }
 }
 
 java {
