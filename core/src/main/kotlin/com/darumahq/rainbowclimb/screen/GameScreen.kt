@@ -104,9 +104,8 @@ class GameScreen(private val game: RainbowClimbGame) : ScreenAdapter() {
             world.player.stopMoving()
         }
 
-        // Jump
-        if (Gdx.input.isKeyJustPressed(Input.Keys.SPACE) ||
-            Gdx.input.isKeyJustPressed(Input.Keys.UP) ||
+        // Jump (UP or W)
+        if (Gdx.input.isKeyJustPressed(Input.Keys.UP) ||
             Gdx.input.isKeyJustPressed(Input.Keys.W) ||
             inputHandler.consumeJump()
         ) {
@@ -114,10 +113,13 @@ class GameScreen(private val game: RainbowClimbGame) : ScreenAdapter() {
             sfx.playJump()
         }
 
-        // Rainbow — Z key or swipe, direction follows player facing
+        // Rainbow bridge (SPACE, Z, or swipe) — direction follows player facing
         val swipeDir = inputHandler.consumeRainbow()
-        if (Gdx.input.isKeyJustPressed(Input.Keys.Z) || swipeDir != -2) {
-            val dir = world.player.facing  // -1 left, 1 right
+        if (Gdx.input.isKeyJustPressed(Input.Keys.SPACE) ||
+            Gdx.input.isKeyJustPressed(Input.Keys.Z) ||
+            swipeDir != -2
+        ) {
+            val dir = world.player.facing
             world.shootRainbow(dir)
             sfx.playRainbow()
         }

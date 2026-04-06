@@ -66,8 +66,8 @@ class MenuScreen(private val game: RainbowClimbGame) : ScreenAdapter() {
 
         font.color = Color.GRAY
         drawCentered("Arrow keys / Touch to move", 100f)
-        drawCentered("Space / 2nd finger to jump", 84f)
-        drawCentered("Z or Swipe for rainbow bridge", 68f)
+        drawCentered("UP / W to jump", 84f)
+        drawCentered("SPACE / Swipe for bridge", 68f)
 
         font.color = Color.SKY
         drawCentered("[C] Characters", 52f)

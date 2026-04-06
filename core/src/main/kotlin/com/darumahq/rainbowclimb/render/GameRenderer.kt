@@ -349,11 +349,11 @@ class GameRenderer(private val batch: SpriteBatch, private val sprites: SpriteMa
                     drawHUDCentered(font, "Touch left/right side on mobile", Constants.VIRTUAL_HEIGHT * 0.3f)
                 }
                 height < 250f -> {
-                    drawHUDCentered(font, "SPACE to jump!", Constants.VIRTUAL_HEIGHT * 0.35f)
+                    drawHUDCentered(font, "UP / W to jump!", Constants.VIRTUAL_HEIGHT * 0.35f)
                     drawHUDCentered(font, "Tap with 2nd finger on mobile", Constants.VIRTUAL_HEIGHT * 0.3f)
                 }
                 height < 500f -> {
-                    drawHUDCentered(font, "Z = Create rainbow bridge", Constants.VIRTUAL_HEIGHT * 0.35f)
+                    drawHUDCentered(font, "SPACE = Create rainbow bridge", Constants.VIRTUAL_HEIGHT * 0.35f)
                     drawHUDCentered(font, "Direction follows your facing", Constants.VIRTUAL_HEIGHT * 0.3f)
                 }
                 height < 800f -> {
