@@ -32,6 +32,15 @@ class World(seed: Long = System.currentTimeMillis()) {
     var score = 0
     var gemsCollected = 0
     private var nextLifeAt = 100
+    var comboCount = 0
+    var comboMultiplier = 1
+    private var comboTimer = 0f
+    private val comboTimeout = 1.5f // seconds to keep combo alive
+
+    // Screen shake
+    var shakeTimer = 0f
+    var shakeIntensity = 0f
+
     var maxHeight = 0f
     var currentLevel = 0
     var platformsClimbed = 0
@@ -106,6 +115,18 @@ class World(seed: Long = System.currentTimeMillis()) {
         if (!player.isAlive) return
         frameDelta = delta
         events.clear()
+
+        // Combo timer decay
+        if (comboTimer > 0) {
+            comboTimer -= delta
+            if (comboTimer <= 0) {
+                comboCount = 0
+                comboMultiplier = 1
+            }
+        }
+
+        // Screen shake decay
+        if (shakeTimer > 0) shakeTimer -= delta
 
         // Update scroll speed based on level
         val speedMult = if (player.slowTimeTimer > 0) 0.5f else 1f
@@ -251,7 +272,16 @@ class World(seed: Long = System.currentTimeMillis()) {
 
             if (player.bounds.overlaps(collectible.bounds)) {
                 collectible.active = false
-                score += collectible.scoreValue
+                // Combo system
+                comboCount++
+                comboTimer = comboTimeout
+                comboMultiplier = when {
+                    comboCount >= 20 -> 4
+                    comboCount >= 10 -> 3
+                    comboCount >= 5 -> 2
+                    else -> 1
+                }
+                score += collectible.scoreValue * comboMultiplier
                 events.add(GameEvent(EventType.COLLECT, collectible.position.x, collectible.position.y))
                 applyCollectible(collectible.type)
             }
@@ -294,6 +324,8 @@ class World(seed: Long = System.currentTimeMillis()) {
 
     private fun killPlayer() {
         events.add(GameEvent(EventType.PLAYER_DEATH, player.position.x, player.position.y))
+        shakeTimer = 0.4f
+        shakeIntensity = 6f
         player.lives--
         if (player.lives > 0) {
             // Respawn: place player on the nearest visible platform
@@ -480,6 +512,11 @@ class World(seed: Long = System.currentTimeMillis()) {
         score = 0
         gemsCollected = 0
         nextLifeAt = 100
+        comboCount = 0
+        comboMultiplier = 1
+        comboTimer = 0f
+        shakeTimer = 0f
+        shakeIntensity = 0f
         maxHeight = 0f
         currentLevel = 0
         highestGeneratedY = 0f

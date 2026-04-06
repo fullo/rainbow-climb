@@ -37,7 +37,16 @@ class GameRenderer(private val batch: SpriteBatch, private val sprites: SpriteMa
 
     fun render(world: World) {
         // Update camera to follow world scroll
+        camera.position.x = Constants.VIRTUAL_WIDTH / 2f
         camera.position.y = world.cameraY + Constants.VIRTUAL_HEIGHT / 2f
+
+        // Screen shake
+        if (world.shakeTimer > 0) {
+            val shake = world.shakeIntensity * (world.shakeTimer / 0.4f)
+            camera.position.x += (Math.random().toFloat() - 0.5f) * shake * 2f
+            camera.position.y += (Math.random().toFloat() - 0.5f) * shake * 2f
+        }
+
         camera.update()
 
         Gdx.gl.glClearColor(0f, 0f, 0f, 1f)
@@ -280,6 +289,21 @@ class GameRenderer(private val batch: SpriteBatch, private val sprites: SpriteMa
         // Biome name
         font.draw(batch, world.currentBiome.name,
             Constants.VIRTUAL_WIDTH / 2f - 30f, Constants.VIRTUAL_HEIGHT - 4f)
+
+        // Combo display (center screen, fading)
+        if (world.comboMultiplier > 1) {
+            val comboAlpha = (world.comboMultiplier.toFloat() / 4f).coerceIn(0.5f, 1f)
+            font.color = when (world.comboMultiplier) {
+                2 -> Color(1f, 1f, 0f, comboAlpha)    // yellow
+                3 -> Color(1f, 0.5f, 0f, comboAlpha)  // orange
+                else -> Color(1f, 0f, 0f, comboAlpha)  // red
+            }
+            val comboText = "x${world.comboMultiplier} COMBO!"
+            val layout = com.badlogic.gdx.graphics.g2d.GlyphLayout(font, comboText)
+            font.draw(batch, comboText,
+                (Constants.VIRTUAL_WIDTH - layout.width) / 2f,
+                Constants.VIRTUAL_HEIGHT / 2f + 120f)
+        }
     }
 
     private fun processEvents(world: World) {
