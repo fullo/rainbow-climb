@@ -10,6 +10,7 @@ import com.badlogic.gdx.graphics.glutils.ShapeRenderer
 import com.badlogic.gdx.utils.viewport.FitViewport
 import com.darumahq.rainbowclimb.entity.EnemyType
 import com.darumahq.rainbowclimb.util.Constants
+import com.darumahq.rainbowclimb.world.PlatformType
 import com.darumahq.rainbowclimb.world.World
 import com.darumahq.rainbowclimb.world.World.EventType
 
@@ -21,7 +22,8 @@ class GameRenderer(private val batch: SpriteBatch, private val sprites: SpriteMa
     private val particles = ParticleSystem()
     private val hudCamera = OrthographicCamera()
 
-    private val rainbowColors = listOf(
+    // Rainbow colors kept for menu screen
+    val rainbowColors = listOf(
         Color.RED, Color.ORANGE, Color.YELLOW,
         Color.GREEN, Color.CYAN, Color.BLUE, Color.VIOLET
     )
@@ -61,16 +63,13 @@ class GameRenderer(private val batch: SpriteBatch, private val sprites: SpriteMa
 
         batch.end()
 
-        // ── Rainbows + Projectiles (ShapeRenderer, game camera) ──
+        // ── Projectiles + Particles (ShapeRenderer, game camera) ──
         Gdx.gl.glEnable(GL20.GL_BLEND)
         Gdx.gl.glBlendFunc(GL20.GL_SRC_ALPHA, GL20.GL_ONE_MINUS_SRC_ALPHA)
         shapeRenderer.projectionMatrix = camera.combined
         shapeRenderer.begin(ShapeRenderer.ShapeType.Filled)
 
-        renderRainbows(world)
         renderProjectiles(world)
-
-        // Process game events into particles
         processEvents(world)
         particles.render(shapeRenderer)
 
@@ -96,28 +95,48 @@ class GameRenderer(private val batch: SpriteBatch, private val sprites: SpriteMa
 
             batch.setColor(1f, 1f, 1f, alpha)
 
-            val tex = sprites.platformBrown
-            // Tile the platform texture across the platform width
-            var drawX = platform.position.x
-            val remaining = platform.width
-            val segW = tex.regionWidth.toFloat()  // 32
-            val segH = tex.regionHeight.toFloat()  // 8
-            var drawn = 0f
-            while (drawn < remaining) {
-                val w = minOf(segW, remaining - drawn)
-                if (w < segW) {
-                    // Partial segment at the end
-                    val partial = TextureRegion(tex.texture,
-                        tex.regionX, tex.regionY, w.toInt(), tex.regionHeight)
-                    batch.draw(partial, drawX, platform.position.y, w, segH)
-                } else {
-                    batch.draw(tex, drawX, platform.position.y, segW, segH)
-                }
-                drawX += w
-                drawn += w
+            // Choose texture based on platform type
+            val tex = when {
+                platform.isCrumbling || platform.type == PlatformType.CRUMBLING ->
+                    sprites.platformCrumble
+                else -> sprites.platformBrown
             }
+
+            tilePlatform(tex, platform.position.x, platform.position.y, platform.width)
         }
+
+        // Rainbow bridges (use animated sprite instead of ShapeRenderer)
+        for (rainbow in world.rainbows) {
+            if (!rainbow.active) continue
+            val alpha = (rainbow.timer / Constants.RAINBOW_DURATION).coerceIn(0f, 1f)
+            batch.setColor(1f, 1f, 1f, alpha)
+
+            val frame = sprites.rainbowBridge.getKeyFrame(
+                Constants.RAINBOW_DURATION - rainbow.timer, true)
+            tilePlatform(frame, rainbow.bounds.x, rainbow.bounds.y,
+                rainbow.bounds.width, rainbow.bounds.height)
+        }
+
         batch.setColor(Color.WHITE)
+    }
+
+    private fun tilePlatform(tex: TextureRegion, x: Float, y: Float,
+                             width: Float, height: Float = tex.regionHeight.toFloat()) {
+        val segW = tex.regionWidth.toFloat()
+        var drawX = x
+        var drawn = 0f
+        while (drawn < width) {
+            val w = minOf(segW, width - drawn)
+            if (w < segW) {
+                val partial = TextureRegion(tex.texture,
+                    tex.regionX, tex.regionY, w.toInt(), tex.regionHeight)
+                batch.draw(partial, drawX, y, w, height)
+            } else {
+                batch.draw(tex, drawX, y, segW, height)
+            }
+            drawX += w
+            drawn += w
+        }
     }
 
     // ── Collectibles ─────────────────────────────────────────────
@@ -132,8 +151,9 @@ class GameRenderer(private val batch: SpriteBatch, private val sprites: SpriteMa
                 sprites.getGemAnimForBiome(world.currentBiome.type)
             }
             val frame = anim.getKeyFrame(collectible.animTimer, true)
-            val bob = kotlin.math.sin((collectible.animTimer * 4f).toDouble()).toFloat() * 2f
-            batch.draw(frame, collectible.position.x, collectible.position.y + bob, 8f, 8f)
+            val bob = kotlin.math.sin((collectible.animTimer * 4f).toDouble()).toFloat() * 3f
+            val size = if (collectible.isPowerUp()) Constants.COLLECTIBLE_SIZE else Constants.GEM_SIZE
+            batch.draw(frame, collectible.position.x, collectible.position.y + bob, size, size)
         }
     }
 
@@ -216,19 +236,7 @@ class GameRenderer(private val batch: SpriteBatch, private val sprites: SpriteMa
 
     // ── Rainbows (ShapeRenderer) ─────────────────────────────────
 
-    private fun renderRainbows(world: World) {
-        for (rainbow in world.rainbows) {
-            if (!rainbow.active) continue
-            val alpha = (rainbow.timer / Constants.RAINBOW_DURATION).coerceIn(0f, 1f)
-            val colorIndex = ((rainbow.timer * 5f).toInt()) % rainbowColors.size
-            val c = rainbowColors[colorIndex]
-            shapeRenderer.setColor(c.r, c.g, c.b, alpha)
-            shapeRenderer.rect(
-                rainbow.bounds.x, rainbow.bounds.y,
-                rainbow.bounds.width, rainbow.bounds.height
-            )
-        }
-    }
+    // Rainbows now rendered as sprites in renderPlatforms()
 
     // ── Projectiles (ShapeRenderer) ──────────────────────────────
 

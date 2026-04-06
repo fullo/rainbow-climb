@@ -42,6 +42,10 @@ class SpriteManager : Disposable {
         private set
     lateinit var platformGrey: TextureRegion
         private set
+    lateinit var platformCrumble: TextureRegion
+        private set
+    lateinit var rainbowBridge: Animation<TextureRegion>
+        private set
 
     // Font
     lateinit var pixelFont: BitmapFont
@@ -80,12 +84,12 @@ class SpriteManager : Disposable {
     private fun loadPlayerAnims() {
         val map = mutableMapOf<String, Animation<TextureRegion>>()
         val base = "sprites/player"
-        map["idle"] = loadStrip("$base/idle.png", 16, 16)
-        map["run"] = loadStrip("$base/run.png", 16, 16)
-        map["jump"] = loadStrip("$base/jump.png", 16, 16, playMode = Animation.PlayMode.NORMAL)
-        map["fall"] = loadStrip("$base/fall.png", 16, 16, playMode = Animation.PlayMode.NORMAL)
-        map["hit"] = loadStrip("$base/hit.png", 16, 16, playMode = Animation.PlayMode.NORMAL)
-        map["double_jump"] = loadStrip("$base/double_jump.png", 16, 16, playMode = Animation.PlayMode.NORMAL)
+        map["idle"] = loadStrip("$base/idle.png", 32, 32)
+        map["run"] = loadStrip("$base/run.png", 32, 32)
+        map["jump"] = loadStrip("$base/jump.png", 32, 32, playMode = Animation.PlayMode.NORMAL)
+        map["fall"] = loadStrip("$base/fall.png", 32, 32, playMode = Animation.PlayMode.NORMAL)
+        map["hit"] = loadStrip("$base/hit.png", 32, 32, playMode = Animation.PlayMode.NORMAL)
+        map["double_jump"] = loadStrip("$base/double_jump.png", 32, 32, playMode = Animation.PlayMode.NORMAL)
         playerAnims = map
     }
 
@@ -95,28 +99,28 @@ class SpriteManager : Disposable {
         val map = mutableMapOf<EnemyType, Map<String, Animation<TextureRegion>>>()
 
         // Walker (17x14 frames)
-        map[EnemyType.WALKER] = loadEnemySet("sprites/enemies/walker", 17, 14,
+        map[EnemyType.WALKER] = loadEnemySet("sprites/enemies/walker", 32, 32,
             listOf("idle", "run", "dead", "hit", "attack"))
 
         // Flyer (15x15 frames)
         map[EnemyType.FLYER] = mapOf(
-            "spin" to loadStrip("sprites/enemies/flyer/spin.png", 15, 15)
+            "spin" to loadStrip("sprites/enemies/flyer/spin.png", 32, 32)
         )
 
         // Hopper (16x16)
-        map[EnemyType.HOPPER] = loadEnemySet("sprites/enemies/hopper", 16, 16,
+        map[EnemyType.HOPPER] = loadEnemySet("sprites/enemies/hopper", 32, 32,
             listOf("idle", "jump", "fall", "dead"))
 
         // Shooter (16x16)
-        map[EnemyType.SHOOTER] = loadEnemySet("sprites/enemies/shooter", 16, 16,
+        map[EnemyType.SHOOTER] = loadEnemySet("sprites/enemies/shooter", 32, 32,
             listOf("idle", "attack"))
 
         // Bomber (16x16)
-        map[EnemyType.BOMBER] = loadEnemySet("sprites/enemies/bomber", 16, 16,
+        map[EnemyType.BOMBER] = loadEnemySet("sprites/enemies/bomber", 32, 32,
             listOf("idle", "run", "throw"))
 
         // Chaser (16x16)
-        map[EnemyType.CHASER] = loadEnemySet("sprites/enemies/chaser", 16, 16,
+        map[EnemyType.CHASER] = loadEnemySet("sprites/enemies/chaser", 32, 32,
             listOf("idle", "run", "attack", "dead"))
 
         enemyAnims = map
@@ -142,10 +146,10 @@ class SpriteManager : Disposable {
     private fun loadCollectibleAnims() {
         val fruits = mutableListOf<Animation<TextureRegion>>()
         for (name in listOf("apple", "cherries", "orange", "bananas", "strawberry", "kiwi")) {
-            fruits.add(loadStrip("sprites/collectibles/$name.png", 8, 8))
+            fruits.add(loadStrip("sprites/collectibles/$name.png", 32, 32))
         }
         fruitAnims = fruits
-        collectEffect = loadStrip("sprites/collectibles/collected.png", 8, 8,
+        collectEffect = loadStrip("sprites/collectibles/collected.png", 32, 32,
             playMode = Animation.PlayMode.NORMAL)
     }
 
@@ -154,7 +158,7 @@ class SpriteManager : Disposable {
     private fun loadGemAnims() {
         val map = mutableMapOf<String, Animation<TextureRegion>>()
         for (color in listOf("blue", "red", "gold", "purple", "turquoise", "light_green", "lilac", "dark_blue")) {
-            map[color] = loadStrip("sprites/gems/gem_$color.png", 8, 8)
+            map[color] = loadStrip("sprites/gems/gem_$color.png", 16, 16)
         }
         gemAnims = map
     }
@@ -197,6 +201,15 @@ class SpriteManager : Disposable {
         greyTex.setFilter(Texture.TextureFilter.Nearest, Texture.TextureFilter.Nearest)
         textures.add(greyTex)
         platformGrey = TextureRegion(greyTex)
+
+        // Crumbling platform (falling platform sprite)
+        val crumbleTex = Texture(Gdx.files.internal("tiles/platform_falling_off.png"))
+        crumbleTex.setFilter(Texture.TextureFilter.Nearest, Texture.TextureFilter.Nearest)
+        textures.add(crumbleTex)
+        platformCrumble = TextureRegion(crumbleTex)
+
+        // Rainbow bridge (animated glowing platform)
+        rainbowBridge = loadStrip("tiles/platform_brown_on.png", 32, 8)
     }
 
     // ── Font ─────────────────────────────────────────────────────
@@ -204,7 +217,7 @@ class SpriteManager : Disposable {
     private fun loadFont() {
         val generator = FreeTypeFontGenerator(Gdx.files.internal("fonts/PublicPixel.ttf"))
         val param = FreeTypeFontGenerator.FreeTypeFontParameter().apply {
-            size = 8
+            size = 16
             minFilter = Texture.TextureFilter.Nearest
             magFilter = Texture.TextureFilter.Nearest
             mono = true

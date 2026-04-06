@@ -10,7 +10,7 @@ Each biome gets 3 PNG layers (240x400) with transparency:
 import random, os
 from PIL import Image, ImageDraw
 
-W, H = 240, 400
+W, H = 480, 800
 
 def lerp_color(c1, c2, t):
     return tuple(int(c1[i] + (c2[i] - c1[i]) * t) for i in range(3))

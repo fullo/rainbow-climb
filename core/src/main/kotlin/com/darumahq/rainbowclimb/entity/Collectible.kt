@@ -2,6 +2,7 @@ package com.darumahq.rainbowclimb.entity
 
 import com.badlogic.gdx.math.Rectangle
 import com.badlogic.gdx.math.Vector2
+import com.darumahq.rainbowclimb.util.Constants
 
 enum class CollectibleType {
     GEM,
@@ -27,7 +28,8 @@ class Collectible {
         type = collectibleType
         active = true
         animTimer = 0f
-        bounds.set(x, y, 8f, 8f)
+        val size = if (isPowerUp()) Constants.COLLECTIBLE_SIZE else Constants.GEM_SIZE
+        bounds.set(x, y, size, size)
 
         scoreValue = when (type) {
             CollectibleType.GEM -> 10
