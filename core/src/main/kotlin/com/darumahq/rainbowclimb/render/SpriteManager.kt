@@ -9,14 +9,15 @@ import com.badlogic.gdx.graphics.g2d.freetype.FreeTypeFontGenerator
 import com.badlogic.gdx.utils.Array as GdxArray
 import com.badlogic.gdx.utils.Disposable
 import com.darumahq.rainbowclimb.entity.EnemyType
+import com.darumahq.rainbowclimb.entity.PlayerCharacter
 import com.darumahq.rainbowclimb.world.BiomeType
 
 class SpriteManager : Disposable {
 
     private val textures = mutableListOf<Texture>()
 
-    // Player animations
-    lateinit var playerAnims: Map<String, Animation<TextureRegion>>
+    // Player animations per character
+    lateinit var allPlayerAnims: Map<PlayerCharacter, Map<String, Animation<TextureRegion>>>
         private set
 
     // Enemy animations: EnemyType -> (animName -> Animation)
@@ -82,15 +83,19 @@ class SpriteManager : Disposable {
     // ── Player ───────────────────────────────────────────────────
 
     private fun loadPlayerAnims() {
-        val map = mutableMapOf<String, Animation<TextureRegion>>()
-        val base = "sprites/player"
-        map["idle"] = loadStrip("$base/idle.png", 32, 32)
-        map["run"] = loadStrip("$base/run.png", 32, 32)
-        map["jump"] = loadStrip("$base/jump.png", 32, 32, playMode = Animation.PlayMode.NORMAL)
-        map["fall"] = loadStrip("$base/fall.png", 32, 32, playMode = Animation.PlayMode.NORMAL)
-        map["hit"] = loadStrip("$base/hit.png", 32, 32, playMode = Animation.PlayMode.NORMAL)
-        map["double_jump"] = loadStrip("$base/double_jump.png", 32, 32, playMode = Animation.PlayMode.NORMAL)
-        playerAnims = map
+        val allAnims = mutableMapOf<PlayerCharacter, Map<String, Animation<TextureRegion>>>()
+        for (character in PlayerCharacter.entries) {
+            val map = mutableMapOf<String, Animation<TextureRegion>>()
+            val base = character.spritePath
+            map["idle"] = loadStrip("$base/idle.png", 32, 32)
+            map["run"] = loadStrip("$base/run.png", 32, 32)
+            map["jump"] = loadStrip("$base/jump.png", 32, 32, playMode = Animation.PlayMode.NORMAL)
+            map["fall"] = loadStrip("$base/fall.png", 32, 32, playMode = Animation.PlayMode.NORMAL)
+            map["hit"] = loadStrip("$base/hit.png", 32, 32, playMode = Animation.PlayMode.NORMAL)
+            map["double_jump"] = loadStrip("$base/double_jump.png", 32, 32, playMode = Animation.PlayMode.NORMAL)
+            allAnims[character] = map
+        }
+        allPlayerAnims = allAnims
     }
 
     // ── Enemies ──────────────────────────────────────────────────
@@ -228,8 +233,9 @@ class SpriteManager : Disposable {
 
     // ── Accessors ────────────────────────────────────────────────
 
-    fun getPlayerAnim(state: String): Animation<TextureRegion> {
-        return playerAnims[state] ?: playerAnims["idle"]!!
+    fun getPlayerAnim(character: PlayerCharacter, state: String): Animation<TextureRegion> {
+        val charAnims = allPlayerAnims[character] ?: allPlayerAnims[PlayerCharacter.PINK_MAN]!!
+        return charAnims[state] ?: charAnims["idle"]!!
     }
 
     fun getEnemyAnim(type: EnemyType, state: String): Animation<TextureRegion> {

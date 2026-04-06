@@ -9,12 +9,14 @@ import com.badlogic.gdx.graphics.g2d.TextureRegion
 import com.badlogic.gdx.graphics.glutils.ShapeRenderer
 import com.badlogic.gdx.utils.viewport.FitViewport
 import com.darumahq.rainbowclimb.entity.EnemyType
+import com.darumahq.rainbowclimb.entity.PlayerCharacter
 import com.darumahq.rainbowclimb.util.Constants
 import com.darumahq.rainbowclimb.world.PlatformType
 import com.darumahq.rainbowclimb.world.World
 import com.darumahq.rainbowclimb.world.World.EventType
 
-class GameRenderer(private val batch: SpriteBatch, private val sprites: SpriteManager) {
+class GameRenderer(private val batch: SpriteBatch, private val sprites: SpriteManager,
+                   var selectedCharacter: PlayerCharacter = PlayerCharacter.PINK_MAN) {
     val camera = OrthographicCamera()
     val viewport = FitViewport(Constants.VIRTUAL_WIDTH, Constants.VIRTUAL_HEIGHT, camera)
     private val shapeRenderer = ShapeRenderer()
@@ -191,7 +193,7 @@ class GameRenderer(private val batch: SpriteBatch, private val sprites: SpriteMa
         val player = world.player
         if (!player.isAlive && player.stateTime > 1.5f) return // hide after death anim
 
-        val anim = sprites.getPlayerAnim(player.animState())
+        val anim = sprites.getPlayerAnim(selectedCharacter, player.animState())
         val looping = player.animState() == "idle" || player.animState() == "run"
         val frame = anim.getKeyFrame(player.stateTime, looping)
 

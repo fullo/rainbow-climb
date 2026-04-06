@@ -12,7 +12,7 @@ import com.darumahq.rainbowclimb.world.World
 
 class GameScreen(private val game: RainbowClimbGame) : ScreenAdapter() {
     private val world = World()
-    private val renderer = GameRenderer(game.batch, game.sprites)
+    private val renderer = GameRenderer(game.batch, game.sprites, game.selectedCharacter)
     private val inputHandler = TouchInputHandler()
     private val musicEngine = MusicEngine()
     private val sfx = SfxManager()
@@ -49,6 +49,7 @@ class GameScreen(private val game: RainbowClimbGame) : ScreenAdapter() {
         if (!world.player.isAlive) {
             sfx.playDeath()
             musicEngine.stop()
+            game.addGems(world.gemsCollected)
             game.setScreen(GameOverScreen(game, world.score, world.maxHeight.toInt(), world.currentLevel, world.currentSeed))
         }
     }

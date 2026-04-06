@@ -51,6 +51,13 @@ class MenuScreen(private val game: RainbowClimbGame) : ScreenAdapter() {
         font.color = Color.WHITE
         drawCentered("RAINBOW CLIMB", Constants.VIRTUAL_HEIGHT - 100f)
 
+        // Show selected character preview
+        val charAnim = game.sprites.getPlayerAnim(game.selectedCharacter, "run")
+        val charFrame = charAnim.getKeyFrame(animTimer, true)
+        val previewX = Constants.VIRTUAL_WIDTH / 2f - 16f
+        val previewY = Constants.VIRTUAL_HEIGHT / 2f + 40f
+        game.batch.draw(charFrame, previewX, previewY, 32f, 32f)
+
         // Blink "tap to play"
         if ((animTimer * 2f).toInt() % 2 == 0) {
             font.color = Color.YELLOW
@@ -63,8 +70,9 @@ class MenuScreen(private val game: RainbowClimbGame) : ScreenAdapter() {
         drawCentered("Z/X/C or Swipe for rainbow", 68f)
 
         font.color = Color.SKY
-        drawCentered("[S] Settings", 44f)
-        drawCentered("[B] Buy Me a Coffee", 28f)
+        drawCentered("[C] Characters", 52f)
+        drawCentered("[S] Settings", 36f)
+        drawCentered("[B] Buy Me a Coffee", 20f)
 
         game.batch.end()
 
@@ -74,6 +82,11 @@ class MenuScreen(private val game: RainbowClimbGame) : ScreenAdapter() {
             Gdx.input.isKeyJustPressed(Input.Keys.ENTER)
         ) {
             game.setScreen(GameScreen(game))
+        }
+
+        // Characters
+        if (Gdx.input.isKeyJustPressed(Input.Keys.C)) {
+            game.setScreen(CharacterSelectScreen(game))
         }
 
         // Settings
