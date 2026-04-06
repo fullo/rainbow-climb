@@ -164,26 +164,20 @@ class SpriteManager : Disposable {
     private fun loadBackgrounds() {
         val bgMap = mutableMapOf<BiomeType, Texture>()
         val biomeToFile = mapOf(
-            BiomeType.SKY_GARDEN to "bg_blue",
-            BiomeType.CLOUD_KINGDOM to "bg_gray",
-            BiomeType.NEON_CITY to "bg_purple",
-            BiomeType.CRYSTAL_CAVE to "bg_blue",
-            BiomeType.FIRE_RUINS to "bg_brown",
-            BiomeType.CANDY_LAND to "bg_pink",
-            BiomeType.SPACE_STATION to "bg_purple",
-            BiomeType.HAUNTED_FOREST to "bg_green"
+            BiomeType.SKY_GARDEN to "bg_sky_garden",
+            BiomeType.CLOUD_KINGDOM to "bg_cloud_kingdom",
+            BiomeType.NEON_CITY to "bg_neon_city",
+            BiomeType.CRYSTAL_CAVE to "bg_crystal_cave",
+            BiomeType.FIRE_RUINS to "bg_fire_ruins",
+            BiomeType.CANDY_LAND to "bg_candy_land",
+            BiomeType.SPACE_STATION to "bg_space_station",
+            BiomeType.HAUNTED_FOREST to "bg_haunted_forest"
         )
-        // Load unique textures only (some biomes share)
-        val loaded = mutableMapOf<String, Texture>()
         for ((biome, file) in biomeToFile) {
-            val tex = loaded.getOrPut(file) {
-                val t = Texture(Gdx.files.internal("backgrounds/$file.png"))
-                t.setFilter(Texture.TextureFilter.Nearest, Texture.TextureFilter.Nearest)
-                t.setWrap(Texture.TextureWrap.Repeat, Texture.TextureWrap.Repeat)
-                textures.add(t)
-                t
-            }
-            bgMap[biome] = tex
+            val t = Texture(Gdx.files.internal("backgrounds/$file.png"))
+            t.setFilter(Texture.TextureFilter.Nearest, Texture.TextureFilter.Nearest)
+            textures.add(t)
+            bgMap[biome] = t
         }
         backgrounds = bgMap
     }
