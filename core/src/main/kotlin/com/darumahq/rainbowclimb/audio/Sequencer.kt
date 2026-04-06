@@ -16,15 +16,15 @@ class Sequencer(
     var stepTimer = 0f
     val stepDuration: Float get() = 60f / bpm / 4f // 16th note duration
 
+    // Markov chain transition probabilities for melody (must be before pattern generation)
+    // Index = interval from current note (in scale degrees): -2, -1, 0, +1, +2
+    private val markovWeights = floatArrayOf(0.1f, 0.25f, 0.15f, 0.3f, 0.2f)
+
     // Patterns for each track
     var drumPattern = generateDrumPattern()
     var bassPattern = generateBassPattern(48) // C3
     var leadPattern = generateLeadPattern(60) // C4
     var padChord = intArrayOf(48, 55, 60) // root, fifth, octave
-
-    // Markov chain transition probabilities for melody
-    // Index = interval from current note (in scale degrees): -2, -1, 0, +1, +2
-    private val markovWeights = floatArrayOf(0.1f, 0.25f, 0.15f, 0.3f, 0.2f)
 
     fun update(delta: Float): Boolean {
         stepTimer += delta

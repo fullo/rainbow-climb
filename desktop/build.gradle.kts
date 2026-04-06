@@ -31,3 +31,7 @@ java {
 kotlin {
     jvmToolchain(17)
 }
+
+tasks.named<JavaExec>("run") {
+    workingDir = project.file("../assets")
+}
