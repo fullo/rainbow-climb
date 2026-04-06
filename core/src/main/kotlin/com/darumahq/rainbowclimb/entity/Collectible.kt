@@ -27,6 +27,7 @@ class Collectible {
         type = collectibleType
         active = true
         animTimer = 0f
+        bounds.set(x, y, 8f, 8f)
 
         scoreValue = when (type) {
             CollectibleType.GEM -> 10
@@ -38,6 +39,7 @@ class Collectible {
     fun update(delta: Float) {
         if (!active) return
         animTimer += delta
+        bounds.setPosition(position.x, position.y)
     }
 
     fun isPowerUp(): Boolean = type.ordinal >= CollectibleType.RAINBOW_BOOST.ordinal

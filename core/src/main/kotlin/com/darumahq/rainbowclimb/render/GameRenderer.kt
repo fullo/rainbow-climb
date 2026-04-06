@@ -169,7 +169,7 @@ class GameRenderer(private val batch: SpriteBatch, private val sprites: SpriteMa
 
     private fun renderPlayer(world: World) {
         val player = world.player
-        if (!player.isAlive && player.stateTime > 0.5f) return // hide after death anim
+        if (!player.isAlive && player.stateTime > 1.5f) return // hide after death anim
 
         val anim = sprites.getPlayerAnim(player.animState())
         val looping = player.animState() == "idle" || player.animState() == "run"
@@ -182,8 +182,13 @@ class GameRenderer(private val batch: SpriteBatch, private val sprites: SpriteMa
         val drawX = player.position.x + (Constants.PLAYER_WIDTH - spriteW) / 2f
         val drawY = player.position.y  // bottom-aligned, not centered
 
+        // Death fade-out effect
+        if (!player.isAlive) {
+            val fadeAlpha = (1f - (player.stateTime / 1.5f)).coerceIn(0f, 1f)
+            batch.setColor(1f, 0.3f, 0.3f, fadeAlpha) // red tint + fade
+        }
         // Shield tint
-        if (player.shieldActive) {
+        else if (player.shieldActive) {
             batch.setColor(0.5f, 1f, 1f, 1f)
         }
 
@@ -229,17 +234,25 @@ class GameRenderer(private val batch: SpriteBatch, private val sprites: SpriteMa
         val font = sprites.pixelFont
         font.color = Color.WHITE
 
-        // Score
-        font.draw(batch, "Score: ${world.score}", 4f, Constants.VIRTUAL_HEIGHT - 4f)
+        // Score + Gems
+        font.draw(batch, "Score:${world.score}", 4f, Constants.VIRTUAL_HEIGHT - 4f)
+        font.color = Color.CYAN
+        font.draw(batch, "G:${world.gemsCollected}", 4f, Constants.VIRTUAL_HEIGHT - 16f)
+
+        // Lives
+        font.color = Color.RED
+        val livesText = "L:" + "♥".repeat(world.player.lives.coerceAtLeast(0))
+        font.draw(batch, livesText, 4f, Constants.VIRTUAL_HEIGHT - 28f)
 
         // Level
+        font.color = Color.WHITE
         font.draw(batch, "Lv ${world.currentLevel + 1}",
             Constants.VIRTUAL_WIDTH - 50f, Constants.VIRTUAL_HEIGHT - 4f)
 
         // Rainbow ammo
         val ammoText = "R:" + "o".repeat(world.player.rainbowAmmo) +
             ".".repeat(world.player.maxRainbowAmmo - world.player.rainbowAmmo)
-        font.draw(batch, ammoText, 4f, Constants.VIRTUAL_HEIGHT - 16f)
+        font.draw(batch, ammoText, Constants.VIRTUAL_WIDTH - 60f, Constants.VIRTUAL_HEIGHT - 16f)
 
         // Biome name
         font.draw(batch, world.currentBiome.name,

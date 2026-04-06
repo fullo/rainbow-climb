@@ -13,9 +13,13 @@ class ParallaxBackground(private val sprites: SpriteManager) {
         val texW = bgTex.width.toFloat()
         val texH = bgTex.height.toFloat()
 
-        // Tint batch with biome background color for atmosphere
+        // Lighten biome color so background is never too dark
+        // Mix 60% biome color + 40% white
         val bg = biome.bgColor
-        batch.setColor(bg.r, bg.g, bg.b, 1f)
+        val tintR = (bg.r * 0.6f + 0.4f).coerceAtMost(1f)
+        val tintG = (bg.g * 0.6f + 0.4f).coerceAtMost(1f)
+        val tintB = (bg.b * 0.6f + 0.4f).coerceAtMost(1f)
+        batch.setColor(tintR, tintG, tintB, 1f)
 
         // Slow parallax layer: tile the background across the viewport
         val scrollOffset = (cameraY * 0.1f) % texH

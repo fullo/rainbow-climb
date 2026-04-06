@@ -30,6 +30,8 @@ class World(seed: Long = System.currentTimeMillis()) {
     var cameraY = 0f
     var scrollSpeed = Constants.BASE_SCROLL_SPEED
     var score = 0
+    var gemsCollected = 0
+    private var nextLifeAt = 100
     var maxHeight = 0f
     var currentLevel = 0
     var platformsClimbed = 0
@@ -151,8 +153,7 @@ class World(seed: Long = System.currentTimeMillis()) {
 
         // Check death: fell below camera
         if (player.position.y < cameraY - Constants.PLAYER_HEIGHT) {
-            events.add(GameEvent(EventType.PLAYER_DEATH, player.position.x, player.position.y))
-            player.isAlive = false
+            killPlayer()
         }
 
         // Flush staged entities
@@ -224,7 +225,7 @@ class World(seed: Long = System.currentTimeMillis()) {
                     score += 25
                     spawnEnemyDrop(enemy.position.x, enemy.position.y)
                 } else {
-                    player.isAlive = false
+                    killPlayer()
                 }
                 return
             }
@@ -277,8 +278,60 @@ class World(seed: Long = System.currentTimeMillis()) {
             CollectibleType.MAGNET -> {
                 player.magnetTimer = 15f
             }
-            else -> {} // gems and stars are just score
+            else -> {
+                // Gems and stars: track gem count for extra lives
+                if (type == CollectibleType.GEM) {
+                    gemsCollected++
+                    if (gemsCollected >= nextLifeAt) {
+                        player.lives++
+                        nextLifeAt += 100
+                        events.add(GameEvent(EventType.COLLECT, player.position.x, player.position.y + 20f))
+                    }
+                }
+            }
         }
+    }
+
+    private fun killPlayer() {
+        events.add(GameEvent(EventType.PLAYER_DEATH, player.position.x, player.position.y))
+        player.lives--
+        if (player.lives > 0) {
+            // Respawn: place player on the nearest visible platform
+            respawnPlayer()
+        } else {
+            player.isAlive = false
+        }
+    }
+
+    private fun respawnPlayer() {
+        // Find the best platform to respawn on (closest to camera center, visible)
+        val cameraCenter = cameraY + Constants.VIRTUAL_HEIGHT / 2f
+        var bestPlatform: Platform? = null
+        var bestDist = Float.MAX_VALUE
+
+        for (platform in platforms) {
+            if (!platform.active) continue
+            val platCenterY = platform.position.y
+            // Must be within visible area
+            if (platCenterY < cameraY || platCenterY > cameraY + Constants.VIRTUAL_HEIGHT) continue
+            val dist = kotlin.math.abs(platCenterY - cameraCenter)
+            if (dist < bestDist) {
+                bestDist = dist
+                bestPlatform = platform
+            }
+        }
+
+        if (bestPlatform != null) {
+            player.position.set(bestPlatform.position.x + bestPlatform.width / 2f,
+                bestPlatform.position.y + 10f)
+        } else {
+            // Fallback: center of screen
+            player.position.set(Constants.VIRTUAL_WIDTH / 2f, cameraY + Constants.VIRTUAL_HEIGHT / 2f)
+        }
+        player.velocity.set(0f, 0f)
+        player.isOnGround = false
+        // Brief invincibility via shield
+        player.shieldActive = true
     }
 
     private fun handleRainbowEnemyCollisions() {
@@ -378,7 +431,7 @@ class World(seed: Long = System.currentTimeMillis()) {
                     player.shieldActive = false
                     proj.active = false
                 } else {
-                    player.isAlive = false
+                    killPlayer()
                     return
                 }
             }
@@ -425,6 +478,8 @@ class World(seed: Long = System.currentTimeMillis()) {
         cameraY = 0f
         scrollSpeed = Constants.BASE_SCROLL_SPEED
         score = 0
+        gemsCollected = 0
+        nextLifeAt = 100
         maxHeight = 0f
         currentLevel = 0
         highestGeneratedY = 0f

@@ -13,6 +13,7 @@ class Player {
     var hasDoubleJump = false
     var doubleJumpUsed = false
     var isAlive = true
+    var lives = 2
 
     // Rainbow ammo
     var rainbowAmmo = Constants.RAINBOW_MAX_AMMO
@@ -42,15 +43,15 @@ class Player {
     }
 
     fun update(delta: Float) {
-        if (!isAlive) return
-
-        // Update animation timing
+        // Always update animation timing (even when dead, for death animation)
         val currentAnim = animState()
         if (currentAnim != previousAnimState) {
             stateTime = 0f
             previousAnimState = currentAnim
         }
         stateTime += delta
+
+        if (!isAlive) return
 
         // Apply gravity
         velocity.y += Constants.GRAVITY * delta
@@ -135,6 +136,7 @@ class Player {
         velocity.set(0f, 0f)
         isOnGround = false
         isAlive = true
+        lives = 2
         rainbowAmmo = Constants.RAINBOW_MAX_AMMO
         maxRainbowAmmo = Constants.RAINBOW_MAX_AMMO
         rainbowRegenTimer = 0f
