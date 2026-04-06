@@ -63,7 +63,8 @@ class MenuScreen(private val game: RainbowClimbGame) : ScreenAdapter() {
         drawCentered("Z/X/C or Swipe for rainbow", 68f)
 
         font.color = Color.SKY
-        drawCentered("[S] Settings", 40f)
+        drawCentered("[S] Settings", 44f)
+        drawCentered("[B] Buy Me a Coffee", 28f)
 
         game.batch.end()
 
@@ -78,6 +79,16 @@ class MenuScreen(private val game: RainbowClimbGame) : ScreenAdapter() {
         // Settings
         if (Gdx.input.isKeyJustPressed(Input.Keys.S)) {
             game.setScreen(SettingsScreen(game))
+        }
+
+        // Buy Me a Coffee
+        if (Gdx.input.isKeyJustPressed(Input.Keys.B)) {
+            Gdx.net.openURI("https://buymeacoffee.com/darumahq")
+        }
+
+        // Android back button → exit
+        if (Gdx.input.isKeyJustPressed(Input.Keys.BACK)) {
+            Gdx.app.exit()
         }
     }
 

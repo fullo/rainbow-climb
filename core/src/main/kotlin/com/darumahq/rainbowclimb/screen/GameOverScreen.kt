@@ -75,7 +75,7 @@ class GameOverScreen(
         drawCentered("Seed: $seedHex", 80f)
 
         font.color = Color.SKY
-        drawCentered("Buy Me a Coffee :)", 50f)
+        drawCentered("[B] Buy Me a Coffee", 50f)
 
         game.batch.end()
 
@@ -87,7 +87,13 @@ class GameOverScreen(
             game.setScreen(GameScreen(game))
         }
 
-        if (Gdx.input.isKeyJustPressed(Input.Keys.ESCAPE)) {
+        if (Gdx.input.isKeyJustPressed(Input.Keys.B)) {
+            Gdx.net.openURI("https://buymeacoffee.com/darumahq")
+        }
+
+        if (Gdx.input.isKeyJustPressed(Input.Keys.ESCAPE) ||
+            Gdx.input.isKeyJustPressed(Input.Keys.BACK)
+        ) {
             game.setScreen(MenuScreen(game))
         }
     }

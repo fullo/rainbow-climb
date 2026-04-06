@@ -101,7 +101,9 @@ class SettingsScreen(private val game: RainbowClimbGame) : ScreenAdapter() {
             }
         }
 
-        if (Gdx.input.isKeyJustPressed(Input.Keys.ESCAPE)) {
+        if (Gdx.input.isKeyJustPressed(Input.Keys.ESCAPE) ||
+            Gdx.input.isKeyJustPressed(Input.Keys.BACK)
+        ) {
             saveAndReturn()
         }
     }

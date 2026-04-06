@@ -22,6 +22,7 @@ class GameScreen(private val game: RainbowClimbGame) : ScreenAdapter() {
     override fun show() {
         world.init()
         Gdx.input.inputProcessor = inputHandler
+        Gdx.input.setCatchKey(Input.Keys.BACK, true)
         musicEngine.updateForBiome(world.currentBiome)
         musicEngine.start()
     }
@@ -85,6 +86,14 @@ class GameScreen(private val game: RainbowClimbGame) : ScreenAdapter() {
         if (rainbowDir != -2) {
             world.shootRainbow(rainbowDir)
             sfx.playRainbow()
+        }
+
+        // Android back button → go to menu
+        if (Gdx.input.isKeyJustPressed(Input.Keys.BACK) ||
+            Gdx.input.isKeyJustPressed(Input.Keys.ESCAPE)
+        ) {
+            musicEngine.stop()
+            game.setScreen(MenuScreen(game))
         }
     }
 
