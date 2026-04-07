@@ -169,6 +169,7 @@ class World(seed: Long = System.currentTimeMillis()) {
         // Update entities
         player.update(delta)
         if (boss.active) {
+            boss.cameraY = cameraY
             boss.update(delta, player.position.x, player.position.y)
             handleBossCollisions()
         }
@@ -286,6 +287,7 @@ class World(seed: Long = System.currentTimeMillis()) {
     }
 
     private fun handleEnemyCollisions() {
+        if (!player.isAlive) return
         for (enemy in enemies) {
             if (!enemy.active) continue
             if (player.bounds.overlaps(enemy.bounds)) {
@@ -505,6 +507,7 @@ class World(seed: Long = System.currentTimeMillis()) {
     }
 
     private fun handleProjectileCollisions() {
+        if (!player.isAlive) return
         for (proj in projectiles) {
             if (!proj.active) continue
             if (player.bounds.overlaps(proj.bounds)) {
@@ -539,7 +542,9 @@ class World(seed: Long = System.currentTimeMillis()) {
         for (rainbow in rainbows) {
             if (!rainbow.active) continue
             if (rainbow.bounds.overlaps(boss.bounds)) {
+                val wasAlive = boss.hp > 0
                 boss.takeDamage()
+                if (!wasAlive) break  // already dead, skip
                 rainbow.active = false
                 shakeTimer = 0.2f
                 shakeIntensity = 4f
@@ -587,6 +592,7 @@ class World(seed: Long = System.currentTimeMillis()) {
             boss.activate(
                 Constants.VIRTUAL_WIDTH / 2f - Boss.WIDTH / 2f,
                 cameraY + Constants.VIRTUAL_HEIGHT * 0.7f,
+                cameraY,
                 currentLevel / 5
             )
         }
@@ -612,6 +618,9 @@ class World(seed: Long = System.currentTimeMillis()) {
         collectibles.clear()
         rainbows.clear()
         projectiles.clear()
+        events.clear()
+        pendingProjectiles.clear()
+        pendingCollectibles.clear()
         boss.reset()
         player.reset()
         cameraY = 0f

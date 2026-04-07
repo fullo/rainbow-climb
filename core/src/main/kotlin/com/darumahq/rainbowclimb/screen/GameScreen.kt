@@ -92,7 +92,16 @@ class GameScreen(private val game: RainbowClimbGame) : ScreenAdapter() {
     }
 
     private fun handleInput() {
-        // Keyboard input (for desktop testing)
+        // Pause toggle — always processed first
+        if (Gdx.input.isKeyJustPressed(Input.Keys.P) ||
+            (paused && Gdx.input.justTouched())
+        ) {
+            paused = !paused
+            return
+        }
+        if (paused) return // Block ALL input while paused
+
+        // Movement
         if (Gdx.input.isKeyPressed(Input.Keys.LEFT) || Gdx.input.isKeyPressed(Input.Keys.A)) {
             world.player.moveLeft()
         } else if (Gdx.input.isKeyPressed(Input.Keys.RIGHT) || Gdx.input.isKeyPressed(Input.Keys.D)) {
@@ -113,7 +122,7 @@ class GameScreen(private val game: RainbowClimbGame) : ScreenAdapter() {
             sfx.playJump()
         }
 
-        // Rainbow bridge (SPACE, Z, or swipe) — direction follows player facing
+        // Rainbow bridge (SPACE, Z, or swipe)
         val swipeDir = inputHandler.consumeRainbow()
         if (Gdx.input.isKeyJustPressed(Input.Keys.SPACE) ||
             Gdx.input.isKeyJustPressed(Input.Keys.Z) ||
@@ -123,15 +132,6 @@ class GameScreen(private val game: RainbowClimbGame) : ScreenAdapter() {
             world.shootRainbow(dir)
             sfx.playRainbow()
         }
-
-        // Pause toggle
-        if (Gdx.input.isKeyJustPressed(Input.Keys.P) ||
-            (paused && Gdx.input.justTouched())
-        ) {
-            paused = !paused
-            return
-        }
-        if (paused) return // Don't process other input while paused
 
         // Android back button → go to menu
         if (Gdx.input.isKeyJustPressed(Input.Keys.BACK) ||

@@ -33,8 +33,10 @@ class Boss {
         const val JUMP_VELOCITY = 600f
     }
 
-    fun activate(x: Float, y: Float, difficulty: Int) {
+    fun activate(x: Float, y: Float, camY: Float, difficulty: Int) {
         position.set(x, y)
+        cameraY = camY
+        baseY = y - camY  // store as offset from camera
         active = true
         hp = 5 + difficulty  // harder bosses have more HP
         maxHp = hp
@@ -45,6 +47,10 @@ class Boss {
         velocity.set(0f, 0f)
         bounds.set(x, y, WIDTH, HEIGHT)
     }
+
+    // Camera Y reference — boss stays on-screen relative to camera
+    var cameraY = 0f
+    private var baseY = 0f  // anchor Y relative to camera
 
     fun update(delta: Float, playerX: Float, playerY: Float) {
         if (!active) return
@@ -58,44 +64,48 @@ class Boss {
         when (state) {
             State.IDLE -> {
                 velocity.x = 0f
-                if (stateTimer <= 0f) {
-                    // Choose next action
-                    if (attackCooldown <= 0f) {
-                        state = State.CHARGE
-                        stateTimer = 1.5f
-                        stateTime = 0f
-                    }
+                velocity.y = 0f
+                // Float toward baseY
+                position.y += (baseY + cameraY - position.y) * 3f * delta
+                if (stateTimer <= 0f && attackCooldown <= 0f) {
+                    state = State.CHARGE
+                    stateTimer = 1.5f
+                    stateTime = 0f
                 }
             }
             State.CHARGE -> {
-                // Run toward player
+                // Run toward player horizontally, stay at baseY
                 val dir = if (facingRight) 1f else -1f
                 velocity.x = dir * CHARGE_SPEED
-                velocity.y += Constants.GRAVITY * delta * 0.5f
+                velocity.y = 0f
+                position.y += (baseY + cameraY - position.y) * 3f * delta
 
                 if (stateTimer <= 0f) {
-                    // Jump at end of charge
                     state = State.JUMP
-                    velocity.y = JUMP_VELOCITY
+                    velocity.y = JUMP_VELOCITY * 0.5f
                     stateTimer = 0.8f
                     stateTime = 0f
                 }
             }
             State.JUMP -> {
-                velocity.y += Constants.GRAVITY * delta * 0.5f
-                // Keep moving toward player
+                // Controlled jump arc — returns to baseY
+                velocity.y -= JUMP_VELOCITY * delta * 2f  // decelerate upward
                 val dir = if (facingRight) 1f else -1f
                 velocity.x = dir * SPEED
 
-                if (stateTimer <= 0f || (velocity.y < 0 && position.y <= playerY)) {
+                if (stateTimer <= 0f) {
                     state = State.ATTACK
                     stateTimer = 0.3f
                     attackCooldown = 2f
                     stateTime = 0f
+                    velocity.y = 0f
                 }
             }
             State.ATTACK -> {
-                velocity.x *= 0.9f // slow down
+                velocity.x *= 0.9f
+                velocity.y = 0f
+                // Snap back toward baseY
+                position.y += (baseY + cameraY - position.y) * 5f * delta
                 if (stateTimer <= 0f) {
                     state = State.IDLE
                     stateTimer = 1f
@@ -104,6 +114,7 @@ class Boss {
             }
             State.HIT -> {
                 velocity.x *= 0.8f
+                velocity.y = 0f
                 if (stateTimer <= 0f) {
                     if (hp <= 0) {
                         state = State.DEAD
@@ -118,7 +129,8 @@ class Boss {
             }
             State.DEAD -> {
                 velocity.x = 0f
-                velocity.y += Constants.GRAVITY * delta * 0.3f
+                // Fall off screen
+                velocity.y -= 500f * delta
                 if (stateTimer <= 0f) {
                     active = false
                 }
@@ -128,7 +140,7 @@ class Boss {
         position.x += velocity.x * delta
         position.y += velocity.y * delta
 
-        // Clamp to screen
+        // Clamp X to screen
         position.x = position.x.coerceIn(0f, Constants.VIRTUAL_WIDTH - WIDTH)
 
         bounds.set(position.x, position.y, WIDTH, HEIGHT)
