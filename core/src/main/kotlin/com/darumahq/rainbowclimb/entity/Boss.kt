@@ -53,8 +53,8 @@ class Boss {
         velocity.set(0f, 0f)
         bounds.set(x, y, WIDTH, HEIGHT)
 
-        // Boss stays near the top of the visible screen
-        highY = Constants.VIRTUAL_HEIGHT * 0.75f  // offset from camera
+        // Boss stays between 35% and 60% of the screen height
+        highY = Constants.VIRTUAL_HEIGHT * 0.55f  // idle position (55%)
     }
 
     fun update(delta: Float, playerX: Float, playerY: Float) {
@@ -157,6 +157,13 @@ class Boss {
         position.x += velocity.x * delta
         position.y += velocity.y * delta
         position.x = position.x.coerceIn(0f, Constants.VIRTUAL_WIDTH - WIDTH)
+
+        // Clamp Y between 35% and 60% of screen (except when DEAD or FLEEING)
+        if (state != State.DEAD && state != State.FLEEING) {
+            val minY = cameraY + Constants.VIRTUAL_HEIGHT * 0.35f
+            val maxY = cameraY + Constants.VIRTUAL_HEIGHT * 0.60f
+            position.y = position.y.coerceIn(minY, maxY)
+        }
 
         bounds.set(position.x, position.y, WIDTH, HEIGHT)
     }
