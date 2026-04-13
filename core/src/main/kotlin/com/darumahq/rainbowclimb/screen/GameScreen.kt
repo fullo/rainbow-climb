@@ -28,8 +28,11 @@ class GameScreen(private val game: RainbowClimbGame) : ScreenAdapter() {
         musicEngine.updateForBiome(world.currentBiome)
         musicEngine.start()
 
-        // Show tutorial on first ever game
+        // Load settings
         val prefs = Gdx.app.getPreferences("rainbow-climb")
+        renderer.reducedMotion = prefs.getBoolean("reducedMotion", false)
+
+        // Show tutorial on first ever game
         if (!prefs.getBoolean("tutorialDone", false)) {
             renderer.showTutorial = true
             prefs.putBoolean("tutorialDone", true)

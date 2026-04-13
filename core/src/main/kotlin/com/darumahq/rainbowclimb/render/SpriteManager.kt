@@ -4,6 +4,7 @@ import com.badlogic.gdx.Gdx
 import com.badlogic.gdx.graphics.Texture
 import com.badlogic.gdx.graphics.g2d.Animation
 import com.badlogic.gdx.graphics.g2d.BitmapFont
+import com.badlogic.gdx.graphics.g2d.TextureAtlas
 import com.badlogic.gdx.graphics.g2d.TextureRegion
 import com.badlogic.gdx.graphics.g2d.freetype.FreeTypeFontGenerator
 import com.badlogic.gdx.utils.Array as GdxArray
@@ -15,6 +16,7 @@ import com.darumahq.rainbowclimb.world.BiomeType
 class SpriteManager : Disposable {
 
     private val textures = mutableListOf<Texture>()
+    private lateinit var atlas: TextureAtlas
 
     // Player animations per character
     lateinit var allPlayerAnims: Map<PlayerCharacter, Map<String, Animation<TextureRegion>>>
@@ -57,6 +59,7 @@ class SpriteManager : Disposable {
         private set
 
     fun load() {
+        atlas = TextureAtlas(Gdx.files.internal("game.atlas"))
         loadPlayerAnims()
         loadEnemyAnims()
         loadBossAnims()
@@ -73,10 +76,24 @@ class SpriteManager : Disposable {
                           frameDuration: Float = 0.05f,
                           playMode: Animation.PlayMode = Animation.PlayMode.LOOP
     ): Animation<TextureRegion> {
+        // Try atlas first, fall back to individual texture
+        val atlasName = path.replace("/", "_").replace(".png", "")
+        val region = atlas.findRegion(atlasName)
+
+        if (region != null) {
+            val numFrames = region.regionWidth / frameW
+            val frames = GdxArray<TextureRegion>(numFrames)
+            for (i in 0 until numFrames) {
+                frames.add(TextureRegion(region.texture,
+                    region.regionX + i * frameW, region.regionY, frameW, frameH))
+            }
+            return Animation(frameDuration, frames, playMode)
+        }
+
+        // Fallback: load individual file
         val tex = Texture(Gdx.files.internal(path))
         tex.setFilter(Texture.TextureFilter.Nearest, Texture.TextureFilter.Nearest)
         textures.add(tex)
-
         val numFrames = tex.width / frameW
         val frames = GdxArray<TextureRegion>(numFrames)
         for (i in 0 until numFrames) {
@@ -219,24 +236,20 @@ class SpriteManager : Disposable {
     // ── Platforms ─────────────────────────────────────────────────
 
     private fun loadPlatforms() {
-        val brownTex = Texture(Gdx.files.internal("tiles/platform_brown_off.png"))
-        brownTex.setFilter(Texture.TextureFilter.Nearest, Texture.TextureFilter.Nearest)
-        textures.add(brownTex)
-        platformBrown = TextureRegion(brownTex)
+        // Load from atlas
+        platformBrown = atlas.findRegion("tiles_platform_brown_off") ?: loadFallbackRegion("tiles/platform_brown_off.png")
+        platformGrey = atlas.findRegion("tiles_platform_grey_off") ?: loadFallbackRegion("tiles/platform_grey_off.png")
+        platformCrumble = atlas.findRegion("tiles_platform_falling_off") ?: loadFallbackRegion("tiles/platform_falling_off.png")
 
-        val greyTex = Texture(Gdx.files.internal("tiles/platform_grey_off.png"))
-        greyTex.setFilter(Texture.TextureFilter.Nearest, Texture.TextureFilter.Nearest)
-        textures.add(greyTex)
-        platformGrey = TextureRegion(greyTex)
-
-        // Crumbling platform (falling platform sprite)
-        val crumbleTex = Texture(Gdx.files.internal("tiles/platform_falling_off.png"))
-        crumbleTex.setFilter(Texture.TextureFilter.Nearest, Texture.TextureFilter.Nearest)
-        textures.add(crumbleTex)
-        platformCrumble = TextureRegion(crumbleTex)
-
-        // Rainbow bridge (animated glowing platform — grey to distinguish from normal)
+        // Rainbow bridge (animated glowing platform)
         rainbowBridge = loadStrip("tiles/platform_grey_on.png", 32, 8)
+    }
+
+    private fun loadFallbackRegion(path: String): TextureRegion {
+        val tex = Texture(Gdx.files.internal(path))
+        tex.setFilter(Texture.TextureFilter.Nearest, Texture.TextureFilter.Nearest)
+        textures.add(tex)
+        return TextureRegion(tex)
     }
 
     // ── Font ─────────────────────────────────────────────────────
@@ -289,6 +302,7 @@ class SpriteManager : Disposable {
     }
 
     override fun dispose() {
+        if (::atlas.isInitialized) atlas.dispose()
         textures.forEach { it.dispose() }
         textures.clear()
         if (::pixelFont.isInitialized) pixelFont.dispose()

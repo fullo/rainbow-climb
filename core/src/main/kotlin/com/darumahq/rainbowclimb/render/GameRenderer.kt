@@ -24,7 +24,10 @@ class GameRenderer(private val batch: SpriteBatch, private val sprites: SpriteMa
     private val particles = ParticleSystem()
     private var achievementTimer = 0f
     private var lastAchievementName = ""
+    // Cached GlyphLayout to avoid per-frame allocation
+    private val glyphLayout = com.badlogic.gdx.graphics.g2d.GlyphLayout()
     var showTutorial = false  // set by GameScreen on first play
+    var reducedMotion = false  // disables particles and screen shake
     private val hudCamera = OrthographicCamera()
 
     // Rainbow colors kept for menu screen
@@ -43,8 +46,8 @@ class GameRenderer(private val batch: SpriteBatch, private val sprites: SpriteMa
         camera.position.x = Constants.VIRTUAL_WIDTH / 2f
         camera.position.y = world.cameraY + Constants.VIRTUAL_HEIGHT / 2f
 
-        // Screen shake
-        if (world.shakeTimer > 0) {
+        // Screen shake (skip if reduced motion)
+        if (world.shakeTimer > 0 && !reducedMotion) {
             val shake = world.shakeIntensity * (world.shakeTimer / 0.4f)
             camera.position.x += (Math.random().toFloat() - 0.5f) * shake * 2f
             camera.position.y += (Math.random().toFloat() - 0.5f) * shake * 2f
@@ -87,8 +90,10 @@ class GameRenderer(private val batch: SpriteBatch, private val sprites: SpriteMa
         shapeRenderer.begin(ShapeRenderer.ShapeType.Filled)
 
         renderProjectiles(world)
-        processEvents(world)
-        particles.render(shapeRenderer)
+        if (!reducedMotion) {
+            processEvents(world)
+            particles.render(shapeRenderer)
+        }
 
         shapeRenderer.end()
 
@@ -373,9 +378,9 @@ class GameRenderer(private val batch: SpriteBatch, private val sprites: SpriteMa
             val alpha = if (achievementTimer < 0.5f) achievementTimer * 2f else 1f
             font.color = Color(0.2f, 1f, 0.2f, alpha)
             val achText = "ACHIEVEMENT: $lastAchievementName"
-            val achLayout = com.badlogic.gdx.graphics.g2d.GlyphLayout(font, achText)
+            glyphLayout.setText(font, achText)
             font.draw(batch, achText,
-                (Constants.VIRTUAL_WIDTH - achLayout.width) / 2f,
+                (Constants.VIRTUAL_WIDTH - glyphLayout.width) / 2f,
                 Constants.VIRTUAL_HEIGHT * 0.7f)
         }
 
@@ -388,9 +393,9 @@ class GameRenderer(private val batch: SpriteBatch, private val sprites: SpriteMa
                 else -> Color(1f, 0f, 0f, comboAlpha)  // red
             }
             val comboText = "x${world.comboMultiplier} COMBO!"
-            val layout = com.badlogic.gdx.graphics.g2d.GlyphLayout(font, comboText)
+            glyphLayout.setText(font, comboText)
             font.draw(batch, comboText,
-                (Constants.VIRTUAL_WIDTH - layout.width) / 2f,
+                (Constants.VIRTUAL_WIDTH - glyphLayout.width) / 2f,
                 Constants.VIRTUAL_HEIGHT / 2f + 120f)
         }
     }
@@ -416,8 +421,8 @@ class GameRenderer(private val batch: SpriteBatch, private val sprites: SpriteMa
     }
 
     private fun drawHUDCentered(font: com.badlogic.gdx.graphics.g2d.BitmapFont, text: String, y: Float) {
-        val layout = com.badlogic.gdx.graphics.g2d.GlyphLayout(font, text)
-        font.draw(batch, text, (Constants.VIRTUAL_WIDTH - layout.width) / 2f, y)
+        glyphLayout.setText(font, text)
+        font.draw(batch, text, (Constants.VIRTUAL_WIDTH - glyphLayout.width) / 2f, y)
     }
 
     fun resize(width: Int, height: Int) {

@@ -18,10 +18,11 @@ class SettingsScreen(private val game: RainbowClimbGame) : ScreenAdapter() {
     private var musicOn = prefs.getBoolean("musicOn", true)
     private var sfxOn = prefs.getBoolean("sfxOn", true)
     private var vibrationOn = prefs.getBoolean("vibrationOn", true)
+    private var reducedMotion = prefs.getBoolean("reducedMotion", false)
 
     // Simple menu selection
     private var selectedIndex = 0
-    private val menuItems = listOf("Music", "SFX", "Vibration", "Back")
+    private val menuItems = listOf("Music", "SFX", "Vibration", "Reduced Motion", "Back")
 
     init {
         camera.setToOrtho(false, Constants.VIRTUAL_WIDTH, Constants.VIRTUAL_HEIGHT)
@@ -51,7 +52,8 @@ class SettingsScreen(private val game: RainbowClimbGame) : ScreenAdapter() {
                 0 -> "Music: ${if (musicOn) "ON" else "OFF"}"
                 1 -> "SFX: ${if (sfxOn) "ON" else "OFF"}"
                 2 -> "Vibration: ${if (vibrationOn) "ON" else "OFF"}"
-                3 -> "< Back"
+                3 -> "Reduced Motion: ${if (reducedMotion) "ON" else "OFF"}"
+                4 -> "< Back"
                 else -> ""
             }
             drawCentered(label, y)
@@ -94,7 +96,8 @@ class SettingsScreen(private val game: RainbowClimbGame) : ScreenAdapter() {
                 0 -> musicOn = !musicOn
                 1 -> sfxOn = !sfxOn
                 2 -> vibrationOn = !vibrationOn
-                3 -> {
+                3 -> reducedMotion = !reducedMotion
+                4 -> {
                     saveAndReturn()
                     return
                 }
@@ -112,6 +115,7 @@ class SettingsScreen(private val game: RainbowClimbGame) : ScreenAdapter() {
         prefs.putBoolean("musicOn", musicOn)
         prefs.putBoolean("sfxOn", sfxOn)
         prefs.putBoolean("vibrationOn", vibrationOn)
+        prefs.putBoolean("reducedMotion", reducedMotion)
         prefs.flush()
         game.setScreen(MenuScreen(game))
     }
