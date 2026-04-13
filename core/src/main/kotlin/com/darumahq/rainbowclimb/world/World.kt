@@ -44,6 +44,7 @@ class World(seed: Long = System.currentTimeMillis()) {
 
     var enemiesKilled = 0
     var bossesDefeated = 0
+    private var bossEncounters = 0  // counts how many bosses have spawned
     var gameTime = 0f
     var rainbowsShot = 0
     var newAchievement: String? = null  // set when an achievement unlocks this frame
@@ -555,12 +556,12 @@ class World(seed: Long = System.currentTimeMillis()) {
                     bossesDefeated++
                     score += 500
                     events.add(GameEvent(EventType.BOSS_DEATH, boss.position.x, boss.position.y))
-                    // Drop lots of gems
-                    for (i in 0 until 10) {
+                    // Drop 50 gems
+                    for (i in 0 until 50) {
                         val c = Collectible()
                         c.activate(
-                            boss.position.x + random.nextFloat(-30f, 30f),
-                            boss.position.y + random.nextFloat(0f, 40f),
+                            boss.position.x + random.nextFloat(-60f, 60f),
+                            boss.position.y + random.nextFloat(-20f, 60f),
                             CollectibleType.GEM
                         )
                         pendingCollectibles.add(c)
@@ -589,11 +590,12 @@ class World(seed: Long = System.currentTimeMillis()) {
 
         // Spawn boss every 5 levels (if no boss active)
         if (currentLevel > 0 && currentLevel % 5 == 0 && !boss.active) {
+            bossEncounters++
             boss.activate(
                 Constants.VIRTUAL_WIDTH / 2f - Boss.WIDTH / 2f,
-                cameraY + Constants.VIRTUAL_HEIGHT * 0.7f,
+                cameraY + Constants.VIRTUAL_HEIGHT * 0.75f,
                 cameraY,
-                currentLevel / 5
+                bossEncounters  // 1st boss = 1 HP, 2nd = 2 HP, etc.
             )
         }
     }
@@ -635,6 +637,7 @@ class World(seed: Long = System.currentTimeMillis()) {
         shakeIntensity = 0f
         enemiesKilled = 0
         bossesDefeated = 0
+        bossEncounters = 0
         gameTime = 0f
         rainbowsShot = 0
         newAchievement = null

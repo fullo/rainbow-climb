@@ -384,6 +384,21 @@ class GameRenderer(private val batch: SpriteBatch, private val sprites: SpriteMa
                 Constants.VIRTUAL_HEIGHT * 0.7f)
         }
 
+        // Boss timer + HP
+        if (world.boss.active && world.boss.state != com.darumahq.rainbowclimb.entity.Boss.State.DEAD) {
+            val bossTimeLeft = (world.boss.timeRemaining() * 15).toInt()
+            font.color = if (bossTimeLeft <= 5) Color.RED else Color.YELLOW
+            drawHUDCentered(font, "BOSS #${world.boss.bossNumber}", Constants.VIRTUAL_HEIGHT - 50f)
+
+            // HP pips
+            val hpText = "HP:" + "O".repeat(world.boss.hp) + ".".repeat((world.boss.maxHp - world.boss.hp).coerceAtLeast(0))
+            drawHUDCentered(font, hpText, Constants.VIRTUAL_HEIGHT - 68f)
+
+            // Time bar
+            font.color = Color.GRAY
+            drawHUDCentered(font, "Time: ${bossTimeLeft}s", Constants.VIRTUAL_HEIGHT - 86f)
+        }
+
         // Combo display (center screen, fading)
         if (world.comboMultiplier > 1) {
             val comboAlpha = (world.comboMultiplier.toFloat() / 4f).coerceIn(0.5f, 1f)

@@ -6,132 +6,149 @@ import com.darumahq.rainbowclimb.util.Constants
 
 /**
  * King Pig boss — appears every 5 biomes.
- * Larger than normal enemies (64x48), takes 5 rainbow hits to defeat.
- * Attack pattern: charges toward player, jumps, throws projectiles.
+ * Stays near top of screen. Leaves after 15 seconds if not killed.
+ * HP = boss number (1st boss: 1 hit, 2nd: 2 hits, 3rd: 3 hits...).
+ * Drops 50 gems when killed.
  */
 class Boss {
     val position = Vector2()
     val velocity = Vector2()
     val bounds = Rectangle()
     var active = false
-    var hp = 5
-    var maxHp = 5
+    var hp = 1
+    var maxHp = 1
     var stateTime = 0f
     var facingRight = false
+    var bossNumber = 1  // which boss encounter (1st, 2nd, 3rd...)
 
-    // State machine
-    enum class State { IDLE, CHARGE, JUMP, ATTACK, HIT, DEAD }
+    enum class State { IDLE, SWOOP, RETREAT, HIT, DEAD, FLEEING }
     var state = State.IDLE
     private var stateTimer = 0f
-    private var attackCooldown = 0f
+    private var lifeTimer = 0f  // 15 seconds total on screen
+
+    // Camera-relative positioning
+    var cameraY = 0f
+    private var highY = 0f     // high position (near top of screen)
+    private var swoopTargetX = 0f
 
     companion object {
         const val WIDTH = 64f
         const val HEIGHT = 48f
-        const val SPEED = 200f
-        const val CHARGE_SPEED = 350f
-        const val JUMP_VELOCITY = 600f
+        const val SPEED = 250f
+        const val SWOOP_SPEED = 400f
+        const val LIFE_DURATION = 15f  // seconds before fleeing
     }
 
-    fun activate(x: Float, y: Float, camY: Float, difficulty: Int) {
+    fun activate(x: Float, y: Float, camY: Float, bossNum: Int) {
         position.set(x, y)
         cameraY = camY
-        baseY = y - camY  // store as offset from camera
-        active = true
-        hp = 5 + difficulty  // harder bosses have more HP
+        bossNumber = bossNum
+        hp = bossNum         // 1st boss = 1 HP, 2nd = 2, etc.
         maxHp = hp
+        active = true
         stateTime = 0f
         state = State.IDLE
-        stateTimer = 2f  // idle for 2 seconds before first attack
-        attackCooldown = 0f
+        stateTimer = 1.5f
+        lifeTimer = LIFE_DURATION
         velocity.set(0f, 0f)
         bounds.set(x, y, WIDTH, HEIGHT)
-    }
 
-    // Camera Y reference — boss stays on-screen relative to camera
-    var cameraY = 0f
-    private var baseY = 0f  // anchor Y relative to camera
+        // Boss stays near the top of the visible screen
+        highY = Constants.VIRTUAL_HEIGHT * 0.75f  // offset from camera
+    }
 
     fun update(delta: Float, playerX: Float, playerY: Float) {
         if (!active) return
 
         stateTime += delta
         stateTimer -= delta
-        if (attackCooldown > 0) attackCooldown -= delta
+        lifeTimer -= delta
 
         facingRight = playerX > position.x
 
+        // Time's up — flee!
+        if (lifeTimer <= 0f && state != State.DEAD && state != State.FLEEING) {
+            state = State.FLEEING
+            stateTimer = 2f
+            stateTime = 0f
+        }
+
+        // Target Y: boss prefers to stay high
+        val targetHighY = cameraY + highY
+
         when (state) {
             State.IDLE -> {
-                velocity.x = 0f
+                // Patrol horizontally near top of screen
+                val dir = if (facingRight) 1f else -1f
+                velocity.x = dir * SPEED * 0.5f
+
+                // Float toward high position
+                position.y += (targetHighY - position.y) * 4f * delta
+
+                if (stateTimer <= 0f) {
+                    // Swoop down toward player
+                    state = State.SWOOP
+                    swoopTargetX = playerX
+                    stateTimer = 1.0f
+                    stateTime = 0f
+                }
+            }
+            State.SWOOP -> {
+                // Dive toward player position
+                val dx = swoopTargetX - position.x
+                val dy = (playerY + 60f) - position.y  // aim slightly above player
+                velocity.x = dx.coerceIn(-SWOOP_SPEED, SWOOP_SPEED)
+                velocity.y = dy.coerceIn(-SWOOP_SPEED, SWOOP_SPEED)
+
+                if (stateTimer <= 0f) {
+                    state = State.RETREAT
+                    stateTimer = 1.2f
+                    stateTime = 0f
+                }
+            }
+            State.RETREAT -> {
+                // Go back up
+                velocity.x *= 0.95f
+                position.y += (targetHighY - position.y) * 5f * delta
                 velocity.y = 0f
-                // Float toward baseY
-                position.y += (baseY + cameraY - position.y) * 3f * delta
-                if (stateTimer <= 0f && attackCooldown <= 0f) {
-                    state = State.CHARGE
+
+                if (stateTimer <= 0f || kotlin.math.abs(position.y - targetHighY) < 10f) {
+                    state = State.IDLE
                     stateTimer = 1.5f
                     stateTime = 0f
                 }
             }
-            State.CHARGE -> {
-                // Run toward player horizontally, stay at baseY
-                val dir = if (facingRight) 1f else -1f
-                velocity.x = dir * CHARGE_SPEED
-                velocity.y = 0f
-                position.y += (baseY + cameraY - position.y) * 3f * delta
-
-                if (stateTimer <= 0f) {
-                    state = State.JUMP
-                    velocity.y = JUMP_VELOCITY * 0.5f
-                    stateTimer = 0.8f
-                    stateTime = 0f
-                }
-            }
-            State.JUMP -> {
-                // Controlled jump arc — returns to baseY
-                velocity.y -= JUMP_VELOCITY * delta * 2f  // decelerate upward
-                val dir = if (facingRight) 1f else -1f
-                velocity.x = dir * SPEED
-
-                if (stateTimer <= 0f) {
-                    state = State.ATTACK
-                    stateTimer = 0.3f
-                    attackCooldown = 2f
-                    stateTime = 0f
-                    velocity.y = 0f
-                }
-            }
-            State.ATTACK -> {
-                velocity.x *= 0.9f
-                velocity.y = 0f
-                // Snap back toward baseY
-                position.y += (baseY + cameraY - position.y) * 5f * delta
-                if (stateTimer <= 0f) {
-                    state = State.IDLE
-                    stateTimer = 1f
-                    stateTime = 0f
-                }
-            }
             State.HIT -> {
-                velocity.x *= 0.8f
+                // Brief stun
+                velocity.x *= 0.7f
                 velocity.y = 0f
+                // Drift upward during hit stun
+                position.y += (targetHighY - position.y) * 2f * delta
+
                 if (stateTimer <= 0f) {
                     if (hp <= 0) {
                         state = State.DEAD
-                        stateTimer = 1f
+                        stateTimer = 1.5f
                         stateTime = 0f
                     } else {
-                        state = State.IDLE
-                        stateTimer = 0.5f
+                        state = State.RETREAT
+                        stateTimer = 1.0f
                         stateTime = 0f
                     }
                 }
             }
             State.DEAD -> {
                 velocity.x = 0f
-                // Fall off screen
-                velocity.y -= 500f * delta
+                velocity.y -= 400f * delta  // fall off screen
                 if (stateTimer <= 0f) {
+                    active = false
+                }
+            }
+            State.FLEEING -> {
+                // Fly off the top of the screen
+                velocity.x = 0f
+                velocity.y = 300f  // go up fast
+                if (stateTimer <= 0f || position.y > cameraY + Constants.VIRTUAL_HEIGHT + HEIGHT) {
                     active = false
                 }
             }
@@ -139,31 +156,32 @@ class Boss {
 
         position.x += velocity.x * delta
         position.y += velocity.y * delta
-
-        // Clamp X to screen
         position.x = position.x.coerceIn(0f, Constants.VIRTUAL_WIDTH - WIDTH)
 
         bounds.set(position.x, position.y, WIDTH, HEIGHT)
     }
 
     fun takeDamage() {
-        if (state == State.DEAD || state == State.HIT) return
+        if (state == State.DEAD || state == State.HIT || state == State.FLEEING) return
         hp--
         state = State.HIT
-        stateTimer = 0.3f
+        stateTimer = 0.4f
         stateTime = 0f
-        // Knockback
-        velocity.x = if (facingRight) -200f else 200f
-        velocity.y = 200f
+        // Knockback upward
+        velocity.x = if (facingRight) -150f else 150f
+        velocity.y = 100f
     }
+
+    /** Remaining time as fraction (1.0 = full, 0.0 = expired) */
+    fun timeRemaining(): Float = (lifeTimer / LIFE_DURATION).coerceIn(0f, 1f)
 
     fun animState(): String = when (state) {
         State.IDLE -> "idle"
-        State.CHARGE -> "run"
-        State.JUMP -> "jump"
-        State.ATTACK -> "attack"
+        State.SWOOP -> "attack"
+        State.RETREAT -> "run"
         State.HIT -> "hit"
         State.DEAD -> "dead"
+        State.FLEEING -> "run"
     }
 
     fun reset() {
