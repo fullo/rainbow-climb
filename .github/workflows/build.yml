@@ -30,6 +30,9 @@ jobs:
       - name: Grant execute permission for gradlew
         run: chmod +x gradlew
 
+      - name: Run tests
+        run: ./gradlew core:test
+
       - name: Build desktop
         run: ./gradlew desktop:classes
 
